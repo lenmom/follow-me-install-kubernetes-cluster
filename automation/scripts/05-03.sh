@@ -1,5 +1,12 @@
 #!/bin/bash
-source ../USERDATA
+
+basepath=$(cd `dirname $0`; pwd)
+
+if [ ! -f "/opt/k8s/work/kube-apiserver.service.template" ]; then
+    ${basepath}/05-02.sh
+fi
+
+source ${basepath}/../USERDATA
 source /opt/k8s/work/iphostinfo
 source /opt/k8s/bin/environment.sh
 

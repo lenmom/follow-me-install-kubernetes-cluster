@@ -1,12 +1,27 @@
 #!/bin/bash
+
 #source /opt/k8s/work/iphostinfo # iphostmapis not used in this file
-source ../USERDATA
+basepath=$(cd `dirname $0`; pwd)
+COMPONENTS_DIR=${basepath}/../components
+
+if [ ! -d "/opt/k8s/work/kubernetes" ]; then
+    ${basepath}/03.sh
+fi
+
+source ${basepath}/../USERDATA
 source /opt/k8s/bin/environment.sh
 
 ###### 04: etcd ####
 cd /opt/k8s/work
-wget -nv https://github.com/coreos/etcd/releases/download/v3.4.3/etcd-v3.4.3-linux-amd64.tar.gz
-tar -xvf etcd-v3.4.3-linux-amd64.tar.gz
+
+if [ ! -d "/opt/k8s/work/etcd-v3.4.3-linux-amd64" ]; then
+    if [ ! -f "${COMPONENTS_DIR}/etcd-v3.4.3-linux-amd64.tar.gz" ]; then
+        echo etcd installation tarball not exist, will download from internet!!!
+        wget -nv https://github.com/coreos/etcd/releases/download/v3.4.3/etcd-v3.4.3-linux-amd64.tar.gz
+        mv etcd-v3.4.3-linux-amd64.tar.gz ${COMPONENTS_DIR}/
+    fi
+    tar -xvf ${COMPONENTS_DIR}/etcd-v3.4.3-linux-amd64.tar.gz -C /opt/k8s/work/
+fi 
 
 cd /opt/k8s/work
 for master_ip in ${MASTER_IPS[@]}

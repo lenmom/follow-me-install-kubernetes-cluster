@@ -1,6 +1,7 @@
 #!/bin/bash
 
-source ../USERDATA
+source $(cd `dirname $0`; pwd)/../USERDATA
+
 # we need to keep in mind what files to be sourced in different servers.
 # Do we need the environment.sh or iphostmap info on the k8s cluster machines?
 
@@ -68,7 +69,10 @@ if [ "$sorted_master_ips" = "$sorted_worker_ips" ]; then
        echo "IP addressed match, but hosts don't in USERDATA. I cannot proceed"
        exit 1
    else
-       mkdir -p /opt/k8s/work
+       if [ ! -d "/opt/k8s/work" ]; then
+           mkdir -p /opt/k8s/work
+       fi
+
        setiphostmap_scenario1
    fi
 else
@@ -86,7 +90,10 @@ else
        exit 1
    else
        # now we proceed
-       mkdir -p /opt/k8s/work
+       if [ ! -d "/opt/k8s/work" ]; then
+           mkdir -p /opt/k8s/work
+       fi
+       
        setiphostmap_scenario2
    fi
 fi

@@ -1,22 +1,35 @@
 #!/bin/bash
-source ../USERDATA
+
+basepath=$(cd `dirname $0`; pwd)
+COMPONENTS_DIR=${basepath}/../components
+
+if [ ! -f "/opt/k8s/bin/environment.sh" ]; then
+    ${basepath}/02.sh
+fi
+
+source ${basepath}/../USERDATA
 source /opt/k8s/work/iphostinfo
 source /opt/k8s/bin/environment.sh
 
 ######## 03 kubectl ####
 cd /opt/k8s/work
-wget -nv https://dl.k8s.io/v1.16.6/kubernetes-client-linux-amd64.tar.gz # 自行解决翻墙下载问题
-tar -xzvf kubernetes-client-linux-amd64.tar.gz
-
+if [ ! -d "/opt/k8s/work/kubernetes" ]; then
+    if [ ! -f "${COMPONENTS_DIR}/kubernetes-server-linux-amd64-1.16.7.tar.gz" ]; then
+        echo kubernetes installation tarball not exist, will download from internet!!!
+        wget -nv https://dl.k8s.io/v1.16.7/kubernetes-client-linux-amd64.tar.gz # 自行解决翻墙下载问题
+        mv kubernetes-client-linux-amd64.tar ${COMPONENTS_DIR}/kubernetes-server-linux-amd64-1.16.7.tar.gz
+    fi
+    tar -xzvf ${COMPONENTS_DIR}/kubernetes-server-linux-amd64-1.16.7.tar.gz -C /opt/k8s/work/
+fi 
 # as I am on a seperate box, where I need to use kubectl to generate configuration file
-cp /opt/k8s/work/kubernetes/client/bin/kubectl /opt/k8s/bin/
+cp /opt/k8s/work/kubernetes/server/bin/kubectl /opt/k8s/bin/
 chmod +x /opt/k8s/bin/*
 
 cd /opt/k8s/work
 for ip in ${!iphostmap[@]}    # it doesn't hurt to have kubectl everywhere
   do
     echo ">>> ${ip}"
-    scp kubernetes/client/bin/kubectl root@${ip}:/opt/k8s/bin/
+    scp kubernetes/server/bin/kubectl root@${ip}:/opt/k8s/bin/
     ssh root@${ip} "chmod +x /opt/k8s/bin/*"
   done
 

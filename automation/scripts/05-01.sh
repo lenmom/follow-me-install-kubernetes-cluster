@@ -1,15 +1,29 @@
 #!/bin/bash
-source ../USERDATA
+
+basepath=$(cd `dirname $0`; pwd)
+COMPONENTS_DIR=${basepath}/../components
+
+if [ ! -d "/opt/k8s/work/etcd-v3.4.3-linux-amd64" ]; then
+    ${basepath}/04.sh
+fi
+
+source ${basepath}/../USERDATA
 source /opt/k8s/work/iphostinfo
 source /opt/k8s/bin/environment.sh
 
 ###### 05-01 master deployment ####
 
 cd /opt/k8s/work
-wget -nv https://dl.k8s.io/v1.16.6/kubernetes-server-linux-amd64.tar.gz  # 自行解决翻墙问题
-tar -xzvf kubernetes-server-linux-amd64.tar.gz
-cd kubernetes
-tar -xzvf  kubernetes-src.tar.gz
+
+if [ ! -d "/opt/k8s/work/kubernetes" ]; then
+    if [ ! -f "${COMPONENTS_DIR}/kubernetes-server-linux-amd64-1.16.7.tar.gz" ]; then
+        echo kubernetes installation tarball not exist, will download from internet!!!
+        wget -nv https://dl.k8s.io/v1.16.7/kubernetes-client-linux-amd64.tar.gz # 自行解决翻墙下载问题
+        mv kubernetes-client-linux-amd64.tar ${COMPONENTS_DIR}/kubernetes-server-linux-amd64-1.16.7.tar.gz
+    fi
+    tar -xzvf ${COMPONENTS_DIR}/kubernetes-server-linux-amd64-1.16.7.tar.gz -C /opt/k8s/work/
+fi 
+
 
 cd /opt/k8s/work
 # if the master and nodes are different, then we don't need to cp controller, apiserve to worker hosts

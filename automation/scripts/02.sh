@@ -1,19 +1,42 @@
 #!/bin/bash
 
+basepath=$(cd `dirname $0`; pwd)
+COMPONENTS_DIR=${basepath}/../components
+
+if [ ! -f "/opt/k8s/bin/environment.sh" ]; then
+    source $(cd `dirname $0`; pwd)/01.sh
+fi
+
 source /opt/k8s/work/iphostinfo
 source /opt/k8s/bin/environment.sh
 
 ########################
-mkdir -p /opt/k8s/cert && cd /opt/k8s/work
+if [ ! -d "/opt/k8s/work" ]; then
+   mkdir -p /opt/k8s/work
+fi
 
-wget -nv https://github.com/cloudflare/cfssl/releases/download/v1.4.1/cfssl_1.4.1_linux_amd64
-mv cfssl_1.4.1_linux_amd64 /opt/k8s/bin/cfssl
+if [ ! -d "/opt/k8s/cert" ]; then
+   mkdir -p /opt/k8s/cert
+fi
 
-wget -nv https://github.com/cloudflare/cfssl/releases/download/v1.4.1/cfssljson_1.4.1_linux_amd64
-mv cfssljson_1.4.1_linux_amd64 /opt/k8s/bin/cfssljson
+if [ ! -d "/etc/kubernetes/cert" ]; then
+   mkdir -p /etc/kubernetes/cert
+fi
 
-wget -nv https://github.com/cloudflare/cfssl/releases/download/v1.4.1/cfssl-certinfo_1.4.1_linux_amd64
-mv cfssl-certinfo_1.4.1_linux_amd64 /opt/k8s/bin/cfssl-certinfo
+if [ ! -d "/opt/k8s/bin" ]; then
+   mkdir -p /opt/k8s/bin
+fi
+
+cd /opt/k8s/work
+
+# wget -nv https://github.com/cloudflare/cfssl/releases/download/v1.4.1/cfssl_1.4.1_linux_amd64
+cp ${COMPONENTS_DIR}/cfssl_linux-amd64 /opt/k8s/bin/cfssl
+
+# wget -nv https://github.com/cloudflare/cfssl/releases/download/v1.4.1/cfssljson_1.4.1_linux_amd64
+cp ${COMPONENTS_DIR}/cfssljson_linux-amd64 /opt/k8s/bin/cfssljson
+
+# wget -nv https://github.com/cloudflare/cfssl/releases/download/v1.4.1/cfssl-certinfo_1.4.1_linux_amd64
+cp ${COMPONENTS_DIR}/cfssl-certinfo_linux-amd64 /opt/k8s/bin/cfssl-certinfo
 
 chmod +x /opt/k8s/bin/*
 export PATH=/opt/k8s/bin:$PATH
@@ -24,7 +47,7 @@ cat > ca-config.json <<EOF
 {
   "signing": {	
     "default": {
-      "expiry": "87600h"
+      "expiry": "876000h"
     },
     "profiles": {
       "kubernetes": {

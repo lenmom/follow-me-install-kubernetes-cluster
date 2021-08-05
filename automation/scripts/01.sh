@@ -1,9 +1,24 @@
 #!/bin/bash
 
-source ../USERDATA
+if [ ! -d "/opt/k8s/work" ]; then
+    mkdir -p /opt/k8s/{bin,work}
+fi
+
+if [ ! -f "/opt/k8s/work/iphostinfo" ]; then
+    $(cd `dirname $0`; pwd)/00.sh
+fi
+
+source $(cd `dirname $0`; pwd)/../USERDATA
 source /opt/k8s/work/iphostinfo
 
-mkdir -p /opt/k8s/{bin,work} /etc/{kubernetes,etcd}/cert
+if [ ! -d "/etc/kubernetes/cert" ]; then
+    mkdir -p /etc/kubernetes/cert
+fi
+
+if [ ! -d "/etc/etcd/cert" ]; then
+    mkdir -p /etc/etcd/cert
+fi
+
 ################################
 
 cat << EOF > /opt/k8s/bin/initial_host_config.sh
@@ -77,7 +92,8 @@ cat << EOF  > /opt/k8s/bin/environment.sh
 #!/usr/bin/bash
 
 # 生成 EncryptionConfig 所需的加密 key
-export ENCRYPTION_KEY=\$(head -c 32 /dev/urandom | base64)
+#export ENCRYPTION_KEY=\$(head -c 32 /dev/urandom | base64)
+export ENCRYPTION_KEY=fb626bf782e95b2c2a704efd0c4f8433
 
 # 集群各机器 IP 数组
 # we get these from USERDATA
@@ -121,7 +137,7 @@ export CONTAINERD_DIR="/data/k8s/containerd"
 ## 以下参数一般不需要修改
 
 # TLS Bootstrapping 使用的 Token，可以使用命令 head -c 16 /dev/urandom | od -An -t x | tr -d ' ' 生成
-BOOTSTRAP_TOKEN="41f7e4ba8b7be874fcff18bf5cf41a7c"
+BOOTSTRAP_TOKEN="8cd0cbcc2e9ae8453bdd8d3e57e002b7"
 
 # 最好使用 当前未用的网段 来定义服务网段和 Pod 网段
 
