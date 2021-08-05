@@ -5,7 +5,7 @@ if [ ! -d "/opt/k8s/work" ]; then
 fi
 
 if [ ! -f "/opt/k8s/work/iphostinfo" ]; then
-    $(cd `dirname $0`; pwd)/00.sh
+    $(cd `dirname $0`; pwd)/00-hosts-preparation.sh
 fi
 
 source $(cd `dirname $0`; pwd)/../USERDATA

@@ -4,7 +4,7 @@ basepath=$(cd `dirname $0`; pwd)
 COMPONENTS_DIR=${basepath}/../components
 
 if [ ! -f "/opt/k8s/bin/environment.sh" ]; then
-    ${basepath}/02.sh
+    ${basepath}/02-kubernetes-ca-generation.sh
 fi
 
 source ${basepath}/../USERDATA

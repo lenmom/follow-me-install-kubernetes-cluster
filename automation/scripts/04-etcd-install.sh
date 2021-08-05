@@ -1,11 +1,12 @@
 #!/bin/bash
 
+
 #source /opt/k8s/work/iphostinfo # iphostmapis not used in this file
 basepath=$(cd `dirname $0`; pwd)
 COMPONENTS_DIR=${basepath}/../components
 
 if [ ! -d "/opt/k8s/work/kubernetes" ]; then
-    ${basepath}/03.sh
+    ${basepath}/03-kubectl-ca-generation.sh
 fi
 
 source ${basepath}/../USERDATA

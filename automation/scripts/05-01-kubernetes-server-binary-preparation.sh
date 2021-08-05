@@ -4,7 +4,7 @@ basepath=$(cd `dirname $0`; pwd)
 COMPONENTS_DIR=${basepath}/../components
 
 if [ ! -d "/opt/k8s/work/etcd-v3.4.3-linux-amd64" ]; then
-    ${basepath}/04.sh
+    ${basepath}/04-etcd-install.sh
 fi
 
 source ${basepath}/../USERDATA
@@ -23,7 +23,6 @@ if [ ! -d "/opt/k8s/work/kubernetes" ]; then
     fi
     tar -xzvf ${COMPONENTS_DIR}/kubernetes-server-linux-amd64-1.16.7.tar.gz -C /opt/k8s/work/
 fi 
-
 
 cd /opt/k8s/work
 # if the master and nodes are different, then we don't need to cp controller, apiserve to worker hosts

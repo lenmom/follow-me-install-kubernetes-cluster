@@ -3,7 +3,14 @@
 # I found the kubelet.service requires containerd. As I plan to add kubelet.service into master hosts for kubectl get nodes to show master hosts
 # so we need logic to add containerd on master hosts then. 
 
-source ../USERDATA
+basepath=$(cd `dirname $0`; pwd)
+COMPONENTS_DIR=${basepath}/../components
+
+if [ ! -f "kube-nginx.service" ]; then
+    ${basepath}/06-02-nginx-install.sh
+fi
+
+source ${basepath}/../USERDATA
 source /opt/k8s/work/iphostinfo
 source /opt/k8s/bin/environment.sh
 

@@ -1,7 +1,10 @@
 #!/bin/bash
 
 # kubelet is mainly for worker nodes, but we can run kubelet on master hosts
-source ../USERDATA
+basepath=$(cd `dirname $0`; pwd)
+COMPONENTS_DIR=${basepath}/../components
+
+source ${basepath}/../USERDATA
 source /opt/k8s/work/iphostinfo
 source /opt/k8s/bin/environment.sh
 

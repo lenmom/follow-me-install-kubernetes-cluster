@@ -3,7 +3,7 @@
 basepath=$(cd `dirname $0`; pwd)
 
 if [ ! -f "/opt/k8s/work/kube-apiserver.service.template" ]; then
-    ${basepath}/05-02.sh
+    ${basepath}/05-02-kube-apiserver-install.sh
 fi
 
 source ${basepath}/../USERDATA

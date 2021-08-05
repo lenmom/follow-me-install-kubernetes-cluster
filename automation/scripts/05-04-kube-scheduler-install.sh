@@ -3,7 +3,7 @@
 basepath=$(cd `dirname $0`; pwd)
 
 if [ ! -f "/opt/k8s/work/kube-controller-manager.service.template" ]; then
-    ${basepath}/05-03.sh
+    ${basepath}/05-03-kube-controller-manager_install.sh
 fi
 
 source ${basepath}/../USERDATA

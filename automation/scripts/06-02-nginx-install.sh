@@ -1,9 +1,10 @@
 #!/bin/bash
 
 basepath=$(cd `dirname $0`; pwd)
+COMPONENTS_DIR=${basepath}/../components
 
 if [ ! -f "/opt/k8s/work/kube-scheduler.service.template" ]; then
-    ${basepath}/05-04.sh
+    ${basepath}/05-04-kube-scheduler-install.sh
 fi
 
 source ${basepath}/../USERDATA
@@ -11,8 +12,14 @@ source /opt/k8s/work/iphostinfo
 source /opt/k8s/bin/environment.sh
 
 cd /opt/k8s/work
-wget -nv http://nginx.org/download/nginx-1.15.3.tar.gz
-tar -xzvf nginx-1.15.3.tar.gz
+if [ ! -d "/opt/k8s/work/nginx-1.15.3" ]; then
+    if [ ! -f "${COMPONENTS_DIR}/nginx-1.15.3.tar.gz" ]; then
+        echo nginx installation tarball not exist, will download from internet!!!
+        wget -nv http://nginx.org/download/nginx-1.15.3.tar.gz
+        mv nginx-1.15.3.tar.gz ${COMPONENTS_DIR}/nginx-1.15.3.tar.gz
+    fi
+    tar -xzvf ${COMPONENTS_DIR}/nginx-1.15.3.tar.gz -C /opt/k8s/work/
+fi 
 
 cd /opt/k8s/work/nginx-1.15.3
 mkdir nginx-prefix

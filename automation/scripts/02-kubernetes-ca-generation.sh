@@ -4,7 +4,7 @@ basepath=$(cd `dirname $0`; pwd)
 COMPONENTS_DIR=${basepath}/../components
 
 if [ ! -f "/opt/k8s/bin/environment.sh" ]; then
-    source $(cd `dirname $0`; pwd)/01.sh
+    source $(cd `dirname $0`; pwd)/01-kernel-upgrade.sh
 fi
 
 source /opt/k8s/work/iphostinfo
