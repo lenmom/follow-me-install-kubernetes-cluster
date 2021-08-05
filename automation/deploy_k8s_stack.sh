@@ -4,36 +4,36 @@ rm -rf /opt/k8s  /etc/kubernetes
 
 cd scripts
 
-#./00.sh 2>&1 | tee /tmp/00.log
-# |tee casues wrapper contines to next step even the 00.sh called exit 1
-# If there is user data error, it should not continue at all.
-# so I take away the tee for the 00.sh
-./00.sh
-# as 00.sh is only validating user inout, no need to redirect to log file
+# #./00.sh 2>&1 | tee /tmp/00.log
+# # |tee casues wrapper contines to next step even the 00.sh called exit 1
+# # If there is user data error, it should not continue at all.
+# # so I take away the tee for the 00.sh
+./00-hosts-preparation.sh
+# # as 00-hosts-preparation.sh is only validating user inout, no need to redirect to log file
 
-./01.sh 2>&1 | tee /tmp/01.log
+./01-kernel-upgrade.sh 2>&1 | tee /tmp/01-kernel-upgrade.log
 
-./02.sh 2>&1 | tee /tmp/02.log
+./02-kubernetes-ca-generation.sh 2>&1 | tee /tmp/02-kubernetes-ca-generation.log
 
-./03.sh 2>&1 | tee /tmp/03.log
+./03-kubectl-ca-generation.sh 2>&1 | tee /tmp/03-kubectl-ca-generation.log
 
-./04.sh 2>&1 | tee /tmp/04.log
+./04-etcd-install.sh 2>&1 | tee /tmp/04-etcd-install.log
 
-./05-01.sh 2>&1 | tee /tmp/05-01.log
+./05-01-kubernetes-server-binary-preparation.sh 2>&1 | tee /tmp/05-01-kubernetes-server-binary-preparation.log
 
-./05-02.sh 2>&1 | tee /tmp/05-02.log
+./05-02-kube-apiserver-install.sh 2>&1 | tee /tmp/05-02-kube-apiserver-install.log
 
-./05-03.sh 2>&1 | tee /tmp/05-03.log
+./05-03-kube-controller-manager_install.sh 2>&1 | tee /tmp/05-03-kube-controller-manager_install.log
 
-./05-04.sh 2>&1 | tee /tmp/05-04.log
+./05-04-kube-scheduler-install.sh 2>&1 | tee /tmp/05-04-kube-scheduler-install.log
 
 ./06-01.sh 2>&1 | tee /tmp/06-01.log
 
-./06-02.sh 2>&1 | tee /tmp/06-02.log
+./06-02-nginx-install.sh 2>&1 | tee /tmp/06-02-nginx-install.log
 
-./06-03.sh 2>&1 | tee /tmp/06-03.log
+./06-03-containerd-install.sh 2>&1 | tee /tmp/06-03-containerd-install.log
 
-./06-04.sh 2>&1 | tee /tmp/06-04.log
+./06-04-kubelet-install.sh 2>&1 | tee /tmp/06-04-kubelet-install.log
 
 ./06-05.sh 2>&1 | tee /tmp/06-05.log
 

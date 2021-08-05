@@ -1,5 +1,4 @@
-
-###### CHANGE TO YOUR IP and HOST ###############
+############### CHANGE TO YOUR IP and HOST #######################
 
 MASTER_IPS=(10.10.1.201 10.10.1.202 10.10.1.203)
 MASTER_HOSTS=(k8s-01 k8s-02 k8s-03)
@@ -7,6 +6,9 @@ MASTER_HOSTS=(k8s-01 k8s-02 k8s-03)
 WORKER_IPS=(10.10.1.201 10.10.1.202 10.10.1.203)
 WORKER_HOSTS=(k8s-01 k8s-02 k8s-03)
 
-###### OPTIONAL ############
+############################ OPTIONAL ############################
+
 SHOW_MASTER=true
 
+########################### INSTALL ROOT #########################
+K8S_INSTALL_ROOT=/opt/k8s
