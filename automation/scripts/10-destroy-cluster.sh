@@ -31,19 +31,22 @@ cd ${K8S_INSTALL_ROOT}/work
 cat > clean-worker-node.sh <<EOF
 #!/bin/bash
 
-#worker node:
-##停相关进程
+#1 worker node:
+##1.1 停相关进程
 systemctl stop kubelet kube-proxy kube-nginx
 systemctl disable kubelet kube-proxy kube-nginx
 
-##停容器进程
-crictl ps -q | xargs crictl stop
-kill -9 containerd-shim-runc-v1 pause
+##1.2 停容器进程
 
-##停 containerd 服务
-systemctl stop containerd && systemctl disable containerd
+###1.2.1 containerd
+#crictl ps -q | xargs crictl stop
+#killall -9 containerd-shim-runc-v1 pause
+#systemctl stop containerd && systemctl disable containerd
 
-##清理文件
+###1.2.2 docker
+#systemctl stop docker && systemctl disable docker
+
+##1.3 清理文件
 ### umount k8s 挂载的目录
 #mount |grep -E 'kubelet|cni|containerd' | awk '{print $3}'|xargs umount
 
