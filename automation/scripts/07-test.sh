@@ -1,6 +1,7 @@
+#!/bin/bash
 
-source ../USERDATA
-source /opt/k8s/bin/environment.sh
+source  $(cd `dirname $0`; pwd)/../USERDATA
+source ${K8S_INSTALL_ROOT}/bin/environment.sh
 notready=`kubectl get nodes | grep -v NAME |grep -v NotReady |wc -l`
 if [ $notready != 0 ]; then
   echo "WARNING cluster node are not full up, but I will still continue"
@@ -9,7 +10,7 @@ if [ $notready != 0 ]; then
   # not the wrapper, so I decide to comment out the exit line here
 fi
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 cat > nginx-ds.yml <<EOF
 apiVersion: v1
 kind: Service
@@ -48,7 +49,7 @@ spec:
         - containerPort: 80
 EOF
 
-kubectl create -f /opt/k8s/work/nginx-ds.yml
+kubectl create -f ${K8S_INSTALL_ROOT}/work/nginx-ds.yml
 
 echo sleep 10 seconds to let the reources to be ready
 sleep 10

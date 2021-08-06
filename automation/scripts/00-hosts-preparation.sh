@@ -18,7 +18,7 @@ fi
 
 setiphostmap_scenario1() {
   # MASTWR and WORKER are on exact same hosts
-  cat > /opt/k8s/work/iphostinfo << EOF
+  cat > ${K8S_INSTALL_ROOT}/work/iphostinfo << EOF
   declare -A iphostmap
 
   MASTER_WORKER_SEPERATED=false
@@ -32,7 +32,7 @@ EOF
 
 setiphostmap_scenario2() {
   # MASTWR and WORKER are completely on different hosts
-  cat > /opt/k8s/work/iphostinfo << EOF
+  cat > ${K8S_INSTALL_ROOT}/work/iphostinfo << EOF
   declare -A iphostmap
 
   MASTER_WORKER_SEPERATED=true
@@ -69,8 +69,8 @@ if [ "$sorted_master_ips" = "$sorted_worker_ips" ]; then
        echo "IP addressed match, but hosts don't in USERDATA. I cannot proceed"
        exit 1
    else
-       if [ ! -d "/opt/k8s/work" ]; then
-           mkdir -p /opt/k8s/work
+       if [ ! -d "${K8S_INSTALL_ROOT}/work" ]; then
+           mkdir -p ${K8S_INSTALL_ROOT}/work
        fi
 
        setiphostmap_scenario1
@@ -90,8 +90,8 @@ else
        exit 1
    else
        # now we proceed
-       if [ ! -d "/opt/k8s/work" ]; then
-           mkdir -p /opt/k8s/work
+       if [ ! -d "${K8S_INSTALL_ROOT}/work" ]; then
+           mkdir -p ${K8S_INSTALL_ROOT}/work
        fi
        
        setiphostmap_scenario2

@@ -1,17 +1,17 @@
 #!/bin/bash
 
 basepath=$(cd `dirname $0`; pwd)
+source ${basepath}/../USERDATA
 
-if [ ! -f "/opt/k8s/work/kube-apiserver.service.template" ]; then
+if [ ! -f "${K8S_INSTALL_ROOT}/work/kube-apiserver.service.template" ]; then
     ${basepath}/05-02-kube-apiserver-install.sh
 fi
 
-source ${basepath}/../USERDATA
-source /opt/k8s/work/iphostinfo
-source /opt/k8s/bin/environment.sh
+source ${K8S_INSTALL_ROOT}/work/iphostinfo
+source ${K8S_INSTALL_ROOT}/bin/environment.sh
 
 ##### 05-3. 部署高可用 kube-controller-manager
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 cat > kube-controller-manager-csr.json <<EOF
 {
     "CN": "system:kube-controller-manager",
@@ -45,22 +45,22 @@ cat > kube-controller-manager-csr.json <<EOF
 }
 EOF
 
-cd /opt/k8s/work
-cfssl gencert -ca=/opt/k8s/work/ca.pem \
-  -ca-key=/opt/k8s/work/ca-key.pem \
-  -config=/opt/k8s/work/ca-config.json \
+cd ${K8S_INSTALL_ROOT}/work
+cfssl gencert -ca=${K8S_INSTALL_ROOT}/work/ca.pem \
+  -ca-key=${K8S_INSTALL_ROOT}/work/ca-key.pem \
+  -config=${K8S_INSTALL_ROOT}/work/ca-config.json \
   -profile=kubernetes kube-controller-manager-csr.json | cfssljson -bare kube-controller-manager
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 for master_ip in ${MASTER_IPS[@]}
   do
     echo ">>> ${master_ip}"
     scp kube-controller-manager*.pem root@${master_ip}:/etc/kubernetes/cert/
   done
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 kubectl config set-cluster kubernetes \
-  --certificate-authority=/opt/k8s/work/ca.pem \
+  --certificate-authority=${K8S_INSTALL_ROOT}/work/ca.pem \
   --embed-certs=true \
   --server="https://##MASTER_IP##:6443" \
   --kubeconfig=kube-controller-manager.kubeconfig
@@ -78,7 +78,7 @@ kubectl config set-context system:kube-controller-manager \
 
 kubectl config use-context system:kube-controller-manager --kubeconfig=kube-controller-manager.kubeconfig
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 for master_ip in ${MASTER_IPS[@]}
   do
     echo ">>> ${master_ip}"
@@ -86,7 +86,7 @@ for master_ip in ${MASTER_IPS[@]}
     scp kube-controller-manager-${master_ip}.kubeconfig root@${master_ip}:/etc/kubernetes/kube-controller-manager.kubeconfig
   done
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 cat > kube-controller-manager.service.template <<EOF
 [Unit]
 Description=Kubernetes Controller Manager
@@ -94,7 +94,7 @@ Documentation=https://github.com/GoogleCloudPlatform/kubernetes
 
 [Service]
 WorkingDirectory=${K8S_DIR}/kube-controller-manager
-ExecStart=/opt/k8s/bin/kube-controller-manager \\
+ExecStart=${K8S_INSTALL_ROOT}/bin/kube-controller-manager \\
   --profiling \\
   --cluster-name=kubernetes \\
   --controllers=*,bootstrapsigner,tokencleaner \\
@@ -138,14 +138,14 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 for((i=0; i<${#MASTER_IPS[@]}; i++))
   do
     sed -e "s/##MASTER_NAME##/${MASTER_HOSTS[$i]}/" -e "s/##MASTER_IP##/${MASTER_IPS[$i]}/" kube-controller-manager.service.template > kube-controller-manager-${MASTER_IPS[$i]}.service 
   done
 
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 for master_ip in ${MASTER_IPS[@]}
   do
     echo ">>> ${master_ip}"

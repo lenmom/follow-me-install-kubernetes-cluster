@@ -1,17 +1,18 @@
 #!/bin/bash
 
 basepath=$(cd `dirname $0`; pwd)
+source ${basepath}/../USERDATA
 
-if [ ! -f "/opt/k8s/work/kube-controller-manager.service.template" ]; then
+if [ ! -f "${K8S_INSTALL_ROOT}/work/kube-controller-manager.service.template" ]; then
     ${basepath}/05-03-kube-controller-manager_install.sh
 fi
 
-source ${basepath}/../USERDATA
-source /opt/k8s/work/iphostinfo
-source /opt/k8s/bin/environment.sh
+
+source ${K8S_INSTALL_ROOT}/work/iphostinfo
+source ${K8S_INSTALL_ROOT}/bin/environment.sh
 
 #### 05-04  deploy scheduler ####
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 cat > kube-scheduler-csr.json <<EOF
 {
     "CN": "system:kube-scheduler",
@@ -45,22 +46,22 @@ cat > kube-scheduler-csr.json <<EOF
 }
 EOF
 
-cd /opt/k8s/work
-cfssl gencert -ca=/opt/k8s/work/ca.pem \
-  -ca-key=/opt/k8s/work/ca-key.pem \
-  -config=/opt/k8s/work/ca-config.json \
+cd ${K8S_INSTALL_ROOT}/work
+cfssl gencert -ca=${K8S_INSTALL_ROOT}/work/ca.pem \
+  -ca-key=${K8S_INSTALL_ROOT}/work/ca-key.pem \
+  -config=${K8S_INSTALL_ROOT}/work/ca-config.json \
   -profile=kubernetes kube-scheduler-csr.json | cfssljson -bare kube-scheduler
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 for master_ip in ${MASTER_IPS[@]}    # need to check whether this one is needed everywhere
   do
     echo ">>> ${master_ip}"
     scp kube-scheduler*.pem root@${master_ip}:/etc/kubernetes/cert/
   done
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 kubectl config set-cluster kubernetes \
-  --certificate-authority=/opt/k8s/work/ca.pem \
+  --certificate-authority=${K8S_INSTALL_ROOT}/work/ca.pem \
   --embed-certs=true \
   --server="https://##MASTER_IP##:6443" \
   --kubeconfig=kube-scheduler.kubeconfig
@@ -78,7 +79,7 @@ kubectl config set-context system:kube-scheduler \
 
 kubectl config use-context system:kube-scheduler --kubeconfig=kube-scheduler.kubeconfig
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 for master_ip in ${MASTER_IPS[@]}
   do
     echo ">>> ${master_ip}"
@@ -86,7 +87,7 @@ for master_ip in ${MASTER_IPS[@]}
     scp kube-scheduler-${master_ip}.kubeconfig root@${master_ip}:/etc/kubernetes/kube-scheduler.kubeconfig
   done
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 cat >kube-scheduler.yaml.template <<EOF
 apiVersion: kubescheduler.config.k8s.io/v1alpha1
 kind: KubeSchedulerConfiguration
@@ -104,21 +105,21 @@ leaderElection:
 metricsBindAddress: ##MASTER_IP##:10251
 EOF
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 #for ip in ${!iphostmap[@]}
 for ((i=0; i<${#MASTER_IPS[@]}; i++))
   do
     sed -e "s/##MASTER_NAME##/${MASTER_HOSTS[$i]}/" -e "s/##MASTER_IP##/${MASTER_IPS[$i]}/" kube-scheduler.yaml.template > kube-scheduler-${MASTER_IPS[$i]}.yaml
   done
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 for master_ip in ${MASTER_IPS[@]}
   do
     echo ">>> ${master_ip}"
     scp kube-scheduler-${master_ip}.yaml root@${master_ip}:/etc/kubernetes/kube-scheduler.yaml
   done
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 cat > kube-scheduler.service.template <<EOF
 [Unit]
 Description=Kubernetes Scheduler
@@ -126,7 +127,7 @@ Documentation=https://github.com/GoogleCloudPlatform/kubernetes
 
 [Service]
 WorkingDirectory=${K8S_DIR}/kube-scheduler
-ExecStart=/opt/k8s/bin/kube-scheduler \\
+ExecStart=${K8S_INSTALL_ROOT}/bin/kube-scheduler \\
   --config=/etc/kubernetes/kube-scheduler.yaml \\
   --bind-address=##MASTER_IP## \\
   --secure-port=10259 \\
@@ -151,14 +152,14 @@ StartLimitInterval=0
 WantedBy=multi-user.target
 EOF
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 #for ip in ${!iphostmap[@]}
 for (( i=0; i < ${#MASTER_IPS[@]}; i++ ))
   do
     sed -e "s/##MASTER_NAME##/${MASTER_HOSTS[$i]}/" -e "s/##MASTER_IP##/${MASTER_IPS[$i]}/" kube-scheduler.service.template > kube-scheduler-${MASTER_IPS[$i]}.service
   done
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 for master_ip in ${MASTER_IPS[@]}
   do
     echo ">>> ${master_ip}"

@@ -1,17 +1,21 @@
 #!/bin/bash
-source /opt/k8s/work/iphostinfo
-source /opt/k8s/bin/environment.sh
 
-cd /opt/k8s/work
+basepath=$(cd `dirname $0`; pwd)
+
+source ${basepath}/../USERDATA
+source ${K8S_INSTALL_ROOT}/work/iphostinfo
+source ${K8S_INSTALL_ROOT}/bin/environment.sh
+
+cd ${K8S_INSTALL_ROOT}/work
 git clone https://github.com/coredns/deployment.git
 mv deployment coredns-deployment
 
-cd /opt/k8s/work/coredns-deployment/kubernetes
+cd ${K8S_INSTALL_ROOT}/work/coredns-deployment/kubernetes
 ./deploy.sh -i ${CLUSTER_DNS_SVC_IP} -d ${CLUSTER_DNS_DOMAIN} | kubectl apply -f -
 
 kubectl get all -n kube-system -l k8s-app=kube-dns
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 cat > my-nginx.yaml <<EOF
 apiVersion: apps/v1
 kind: Deployment
@@ -39,7 +43,7 @@ kubectl expose deploy my-nginx
 
 kubectl get services my-nginx -o wide
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 cat > dnsutils-ds.yml <<EOF
 apiVersion: v1
 kind: Service

@@ -2,47 +2,48 @@
 
 basepath=$(cd `dirname $0`; pwd)
 COMPONENTS_DIR=${basepath}/../components
+source $(cd `dirname $0`; pwd)/../USERDATA
 
-if [ ! -f "/opt/k8s/bin/environment.sh" ]; then
+if [ ! -f "${K8S_INSTALL_ROOT}/bin/environment.sh" ]; then
     source $(cd `dirname $0`; pwd)/01-kernel-upgrade.sh
 fi
 
-source /opt/k8s/work/iphostinfo
-source /opt/k8s/bin/environment.sh
+source ${K8S_INSTALL_ROOT}/work/iphostinfo
+source ${K8S_INSTALL_ROOT}/bin/environment.sh
 
 ########################
-if [ ! -d "/opt/k8s/work" ]; then
-   mkdir -p /opt/k8s/work
+if [ ! -d "${K8S_INSTALL_ROOT}/work" ]; then
+   mkdir -p ${K8S_INSTALL_ROOT}/work
 fi
 
-if [ ! -d "/opt/k8s/cert" ]; then
-   mkdir -p /opt/k8s/cert
+if [ ! -d "${K8S_INSTALL_ROOT}/cert" ]; then
+   mkdir -p ${K8S_INSTALL_ROOT}/cert
 fi
 
 if [ ! -d "/etc/kubernetes/cert" ]; then
    mkdir -p /etc/kubernetes/cert
 fi
 
-if [ ! -d "/opt/k8s/bin" ]; then
-   mkdir -p /opt/k8s/bin
+if [ ! -d "${K8S_INSTALL_ROOT}/bin" ]; then
+   mkdir -p ${K8S_INSTALL_ROOT}/bin
 fi
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 
 # wget -nv https://github.com/cloudflare/cfssl/releases/download/v1.4.1/cfssl_1.4.1_linux_amd64
-cp ${COMPONENTS_DIR}/cfssl_linux-amd64 /opt/k8s/bin/cfssl
+cp ${COMPONENTS_DIR}/cfssl_linux-amd64 ${K8S_INSTALL_ROOT}/bin/cfssl
 
 # wget -nv https://github.com/cloudflare/cfssl/releases/download/v1.4.1/cfssljson_1.4.1_linux_amd64
-cp ${COMPONENTS_DIR}/cfssljson_linux-amd64 /opt/k8s/bin/cfssljson
+cp ${COMPONENTS_DIR}/cfssljson_linux-amd64 ${K8S_INSTALL_ROOT}/bin/cfssljson
 
 # wget -nv https://github.com/cloudflare/cfssl/releases/download/v1.4.1/cfssl-certinfo_1.4.1_linux_amd64
-cp ${COMPONENTS_DIR}/cfssl-certinfo_linux-amd64 /opt/k8s/bin/cfssl-certinfo
+cp ${COMPONENTS_DIR}/cfssl-certinfo_linux-amd64 ${K8S_INSTALL_ROOT}/bin/cfssl-certinfo
 
-chmod +x /opt/k8s/bin/*
-export PATH=/opt/k8s/bin:$PATH
+chmod +x ${K8S_INSTALL_ROOT}/bin/*
+export PATH=${K8S_INSTALL_ROOT}/bin:$PATH
 
 #### CA ####
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 cat > ca-config.json <<EOF
 {
   "signing": {	
@@ -64,7 +65,7 @@ cat > ca-config.json <<EOF
 }
 EOF
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 cat > ca-csr.json <<EOF
 {
   "CN": "kubernetes-ca",
@@ -87,10 +88,10 @@ cat > ca-csr.json <<EOF
 }
 EOF
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 cfssl gencert -initca ca-csr.json | cfssljson -bare ca
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 for ip in ${!iphostmap[@]}    # need to verify whether it is needed every nodes 
   do
     echo ">>> ${ip}"

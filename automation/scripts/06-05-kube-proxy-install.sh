@@ -2,11 +2,12 @@
 
 # kube-proxy  is on worker node
 
-source ../USERDATA
-source /opt/k8s/work/iphostinfo
-source /opt/k8s/bin/environment.sh
+basepath=$(cd `dirname $0`; pwd)
+source ${basepath}/../USERDATA
+source ${K8S_INSTALL_ROOT}/work/iphostinfo
+source ${K8S_INSTALL_ROOT}/bin/environment.sh
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 cat > kube-proxy-csr.json <<EOF
 {
   "CN": "system:kube-proxy",
@@ -26,16 +27,16 @@ cat > kube-proxy-csr.json <<EOF
 }
 EOF
 
-cd /opt/k8s/work
-cfssl gencert -ca=/opt/k8s/work/ca.pem \
-  -ca-key=/opt/k8s/work/ca-key.pem \
-  -config=/opt/k8s/work/ca-config.json \
+cd ${K8S_INSTALL_ROOT}/work
+cfssl gencert -ca=${K8S_INSTALL_ROOT}/work/ca.pem \
+  -ca-key=${K8S_INSTALL_ROOT}/work/ca-key.pem \
+  -config=${K8S_INSTALL_ROOT}/work/ca-config.json \
   -profile=kubernetes  kube-proxy-csr.json | cfssljson -bare kube-proxy
 ls kube-proxy*
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 kubectl config set-cluster kubernetes \
-  --certificate-authority=/opt/k8s/work/ca.pem \
+  --certificate-authority=${K8S_INSTALL_ROOT}/work/ca.pem \
   --embed-certs=true \
   --server=${KUBE_APISERVER} \
   --kubeconfig=kube-proxy.kubeconfig
@@ -53,7 +54,7 @@ kubectl config set-context default \
 
 kubectl config use-context default --kubeconfig=kube-proxy.kubeconfig
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 for worker_name in ${WORKER_HOSTS[@]}
   do
     echo ">>> ${worker_name}"
@@ -69,7 +70,7 @@ for master_name in ${MASTER_HOSTS[@]}
   done
 fi
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 cat > kube-proxy-config.yaml.template <<EOF
 kind: KubeProxyConfiguration
 apiVersion: kubeproxy.config.k8s.io/v1alpha1
@@ -92,7 +93,7 @@ ipvs:
   excludeCIDRs: []
 EOF
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 #for (( i=0; i < ${#WORKER_HOSTS[@]}; i++ ))  # I don't know two hash arrays have the same order or not, so we need to avoid 
 #for ip in ${!iphostmap[@]}
 for (( i=0; i < ${#WORKER_IPS[@]}; i++ ))
@@ -113,7 +114,7 @@ if [ $MASTER_WORKER_SEPERATED = true ]; then
   done
 fi
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 cat > kube-proxy.service <<EOF
 [Unit]
 Description=Kubernetes Kube-Proxy Server
@@ -122,7 +123,7 @@ After=network.target
 
 [Service]
 WorkingDirectory=${K8S_DIR}/kube-proxy
-ExecStart=/opt/k8s/bin/kube-proxy \\
+ExecStart=${K8S_INSTALL_ROOT}/bin/kube-proxy \\
   --config=/etc/kubernetes/kube-proxy-config.yaml \\
   --logtostderr=true \\
   --v=2
@@ -134,7 +135,7 @@ LimitNOFILE=65536
 WantedBy=multi-user.target
 EOF
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 for worker_name in ${WORKER_HOSTS[@]}
   do 
     echo ">>> ${worker_name}"
@@ -150,7 +151,7 @@ if [ $MASTER_WORKER_SEPERATED = true ]; then
   done
 fi
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 for worker_ip in ${WORKER_IPS[@]}
   do
     echo ">>> ${worker_ip}"

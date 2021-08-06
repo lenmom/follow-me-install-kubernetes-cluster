@@ -11,4 +11,5 @@ WORKER_HOSTS=(k8s-01 k8s-02 k8s-03)
 SHOW_MASTER=true
 
 ########################### INSTALL ROOT #########################
+
 K8S_INSTALL_ROOT=/opt/k8s

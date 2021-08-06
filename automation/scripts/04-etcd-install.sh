@@ -1,38 +1,39 @@
 #!/bin/bash
 
 
-#source /opt/k8s/work/iphostinfo # iphostmapis not used in this file
+#source ${K8S_INSTALL_ROOT}/work/iphostinfo # iphostmapis not used in this file
 basepath=$(cd `dirname $0`; pwd)
 COMPONENTS_DIR=${basepath}/../components
+source ${basepath}/../USERDATA
 
-if [ ! -d "/opt/k8s/work/kubernetes" ]; then
+if [ ! -d "${K8S_INSTALL_ROOT}/work/kubernetes" ]; then
     ${basepath}/03-kubectl-ca-generation.sh
 fi
 
 source ${basepath}/../USERDATA
-source /opt/k8s/bin/environment.sh
+source ${K8S_INSTALL_ROOT}/bin/environment.sh
 
 ###### 04: etcd ####
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 
-if [ ! -d "/opt/k8s/work/etcd-v3.4.3-linux-amd64" ]; then
+if [ ! -d "${K8S_INSTALL_ROOT}/work/etcd-v3.4.3-linux-amd64" ]; then
     if [ ! -f "${COMPONENTS_DIR}/etcd-v3.4.3-linux-amd64.tar.gz" ]; then
         echo etcd installation tarball not exist, will download from internet!!!
         wget -nv https://github.com/coreos/etcd/releases/download/v3.4.3/etcd-v3.4.3-linux-amd64.tar.gz
         mv etcd-v3.4.3-linux-amd64.tar.gz ${COMPONENTS_DIR}/
     fi
-    tar -xvf ${COMPONENTS_DIR}/etcd-v3.4.3-linux-amd64.tar.gz -C /opt/k8s/work/
+    tar -xvf ${COMPONENTS_DIR}/etcd-v3.4.3-linux-amd64.tar.gz -C ${K8S_INSTALL_ROOT}/work/
 fi 
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 for master_ip in ${MASTER_IPS[@]}
   do
     echo ">>> ${master_ip}"
-    scp etcd-v3.4.3-linux-amd64/etcd* root@${master_ip}:/opt/k8s/bin
-    ssh root@${master_ip} "chmod +x /opt/k8s/bin/*"
+    scp etcd-v3.4.3-linux-amd64/etcd* root@${master_ip}:${K8S_INSTALL_ROOT}/bin
+    ssh root@${master_ip} "chmod +x ${K8S_INSTALL_ROOT}/bin/*"
   done
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 cat > etcd-csr.json <<EOF
 {
   "CN": "etcd",
@@ -66,13 +67,13 @@ cat > etcd-csr.json <<EOF
 }
 EOF
 
-cd /opt/k8s/work
-cfssl gencert -ca=/opt/k8s/work/ca.pem \
-    -ca-key=/opt/k8s/work/ca-key.pem \
-    -config=/opt/k8s/work/ca-config.json \
+cd ${K8S_INSTALL_ROOT}/work
+cfssl gencert -ca=${K8S_INSTALL_ROOT}/work/ca.pem \
+    -ca-key=${K8S_INSTALL_ROOT}/work/ca-key.pem \
+    -config=${K8S_INSTALL_ROOT}/work/ca-config.json \
     -profile=kubernetes etcd-csr.json | cfssljson -bare etcd
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 for master_ip in ${MASTER_IPS[@]}
   do
     echo ">>> ${mastere_ip}"
@@ -80,7 +81,7 @@ for master_ip in ${MASTER_IPS[@]}
     scp etcd*.pem root@${master_ip}:/etc/etcd/cert/
   done
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 cat > etcd.service.template <<EOF
 [Unit]
 Description=Etcd Server
@@ -92,7 +93,7 @@ Documentation=https://github.com/coreos
 [Service]
 Type=notify
 WorkingDirectory=${ETCD_DATA_DIR}
-ExecStart=/opt/k8s/bin/etcd \\
+ExecStart=${K8S_INSTALL_ROOT}/bin/etcd \\
   --data-dir=${ETCD_DATA_DIR} \\
   --wal-dir=${ETCD_WAL_DIR} \\
   --name=##MASTER_NAME## \\
@@ -125,7 +126,7 @@ LimitNOFILE=65536
 WantedBy=multi-user.target
 EOF
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 #for ip in ${MASTER_IPS[@]}
 for (( i=0; i < ${#MASTER_IPS[@]}; i++ ))
   do
@@ -133,14 +134,14 @@ for (( i=0; i < ${#MASTER_IPS[@]}; i++ ))
   done
 ls *.service
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 for master_ip in ${MASTER_IPS[@]}
   do
     echo ">>> ${master_ip}"
     scp etcd-${master_ip}.service root@${master_ip}:/etc/systemd/system/etcd.service
   done
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 for master_ip in ${MASTER_IPS[@]}
   do
     echo "========================starting etcd.service on ${master_ip} at `date` ============================= "
@@ -163,7 +164,7 @@ for master_ip in ${MASTER_IPS[@]}
 #ssh -q {MASTER_IPS[0]} sh -c  "
 #for master_ip in ${MASTER_IPS[@]}
 # do
-#    /opt/k8s/bin/etcdctl \
+#    ${K8S_INSTALL_ROOT}/bin/etcdctl \
 #        --endpoints=https://${master_ip}:2379 \
 #        --cacert=/etc/kubernetes/cert/ca.pem \
 #        --cert=/etc/etcd/cert/etcd.pem \

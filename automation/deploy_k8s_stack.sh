@@ -1,6 +1,10 @@
+#!/bin/bash
+
 set -e
+
+source $(cd `dirname $0`; pwd)/USERDATA
 # clean the staged files for the previous run (if applicable)
-rm -rf /opt/k8s  /etc/kubernetes
+rm -rf ${K8S_INSTALL_ROOT}  /etc/kubernetes
 
 cd scripts
 
@@ -35,20 +39,20 @@ cd scripts
 
 ./06-04-kubelet-install.sh 2>&1 | tee /tmp/06-04-kubelet-install.log
 
-./06-05.sh 2>&1 | tee /tmp/06-05.log
+./06-05-kube-proxy-install.sh 2>&1 | tee /tmp/06-05-kube-proxy-install.log
 
-./06-06.sh 2>&1 | tee /tmp/06-06.log
+./06-06-calico-install.sh 2>&1 | tee /tmp/06-06-calico-install.log
 
 ./07-test.sh 2>&1 | tee /tmp/07-01.log
 
 # there is no 08-01 as it was a description
 
-./08-02.sh 2>&1 | tee /tmp/08-02.log &
+./08-02-coredns-install.sh 2>&1 | tee /tmp/08-02-coredns-install.log &
 # tee holds the session even though I put the kubectl port-forward command in background
 # I don't think there is dependency among the 08-03,08-04,08-05, so it should be ok
 
-./08-03.sh 2>&1 | tee /tmp/08-03.log &
+./08-03-dashboard-install.sh 2>&1 | tee /tmp/08-03-dashboard-install.log &
 
-./08-04.sh 2>&1 | tee /tmp/08-04.log &
+./08-04-kube-prometheus-install.sh 2>&1 | tee /tmp/08-04-kube-prometheus-install.log &
 
-./08-05.sh 2>&1 | tee /tmp/08-05.log &
+./08-05-EFK.sh 2>&1 | tee /tmp/08-05-EFK.log &

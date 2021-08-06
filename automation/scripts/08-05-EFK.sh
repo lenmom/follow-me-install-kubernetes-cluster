@@ -1,18 +1,18 @@
 #!/bin/bash
 
-echo "=== step 08-05 started ==="
-source ../USERDATA
-export PATH=$PATH:/opt/k8s/bin
+basepath=$(cd `dirname $0`; pwd)
+source ${basepath}/../USERDATA
+export PATH=$PATH:${K8S_INSTALL_ROOT}/bin
 
-cd /opt/k8s/work/kubernetes/
+cd ${K8S_INSTALL_ROOT}/work/kubernetes/
 tar -xzvf kubernetes-src.tar.gz
 
-cd /opt/k8s/work/kubernetes/cluster/addons/fluentd-elasticsearch
+cd ${K8S_INSTALL_ROOT}/work/kubernetes/cluster/addons/fluentd-elasticsearch
 #sed -i -e 's_quay.io_quay.azk8s.cn_' es-statefulset.yaml # 使用微软的 Registry
 #sed -i -e 's_quay.io_quay.azk8s.cn_' fluentd-es-ds.yaml # 使用微软的 Registry
 # do we really need to use quay.azk8s.cn registry?
 
-cd /opt/k8s/work/kubernetes/cluster/addons/fluentd-elasticsearch
+cd ${K8S_INSTALL_ROOT}/work/kubernetes/cluster/addons/fluentd-elasticsearch
 kubectl apply -f .
 
 echo "=== sleep 10 seconds"

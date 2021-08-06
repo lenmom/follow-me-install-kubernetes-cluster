@@ -1,17 +1,17 @@
 #!/bin/bash
 
 basepath=$(cd `dirname $0`; pwd)
+source ${basepath}/../USERDATA
 
-if [ ! -f "/opt/k8s/bin/kube-apiserver" ]; then
+if [ ! -f "${K8S_INSTALL_ROOT}/bin/kube-apiserver" ]; then
     ${basepath}/05-01-kubernetes-server-binary-preparation.sh
 fi
 
-source ${basepath}/../USERDATA
-source /opt/k8s/work/iphostinfo
-source /opt/k8s/bin/environment.sh
+source ${K8S_INSTALL_ROOT}/work/iphostinfo
+source ${K8S_INSTALL_ROOT}/bin/environment.sh
 
 ###### 05-02 deploy kube-apiserver 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 cat > kubernetes-csr.json <<EOF
 {
   "CN": "kubernetes-master",
@@ -42,12 +42,12 @@ cat > kubernetes-csr.json <<EOF
 }
 EOF
 
-cfssl gencert -ca=/opt/k8s/work/ca.pem \
-  -ca-key=/opt/k8s/work/ca-key.pem \
-  -config=/opt/k8s/work/ca-config.json \
+cfssl gencert -ca=${K8S_INSTALL_ROOT}/work/ca.pem \
+  -ca-key=${K8S_INSTALL_ROOT}/work/ca-key.pem \
+  -config=${K8S_INSTALL_ROOT}/work/ca-config.json \
   -profile=kubernetes kubernetes-csr.json | cfssljson -bare kubernetes
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 for ip in ${!iphostmap[@]}     # NEED to verify whether all nodes need it
   do
     echo ">>> ${ip}"
@@ -55,7 +55,7 @@ for ip in ${!iphostmap[@]}     # NEED to verify whether all nodes need it
     scp kubernetes*.pem root@${ip}:/etc/kubernetes/cert/
   done
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 cat > encryption-config.yaml <<EOF
 kind: EncryptionConfig
 apiVersion: v1
@@ -70,14 +70,14 @@ resources:
       - identity: {}
 EOF
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 for ip in ${!iphostmap[@]}    # need to check whether we need on all instances
   do
     echo ">>> ${ip}"
     scp encryption-config.yaml root@${ip}:/etc/kubernetes/
   done
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 cat > audit-policy.yaml <<EOF
 apiVersion: audit.k8s.io/v1beta1
 kind: Policy
@@ -269,14 +269,14 @@ rules:
       - RequestReceived
 EOF
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 for ip in ${!iphostmap[@]}   # need to verify whether it is needed every instance
   do
     echo ">>> ${ip}"
     scp audit-policy.yaml root@${ip}:/etc/kubernetes/audit-policy.yaml
   done
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 cat > proxy-client-csr.json <<EOF
 {
   "CN": "aggregator",
@@ -308,7 +308,7 @@ for ip in ${!iphostmap[@]}    # need to check whether it is needed every instanc
     scp proxy-client*.pem root@${ip}:/etc/kubernetes/cert/
   done
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 cat > kube-apiserver.service.template <<EOF
 [Unit]
 Description=Kubernetes API Server
@@ -317,7 +317,7 @@ After=network.target
 
 [Service]
 WorkingDirectory=${K8S_DIR}/kube-apiserver
-ExecStart=/opt/k8s/bin/kube-apiserver \\
+ExecStart=${K8S_INSTALL_ROOT}/bin/kube-apiserver \\
   --advertise-address=##MASTER_IP## \\
   --default-not-ready-toleration-seconds=360 \\
   --default-unreachable-toleration-seconds=360 \\
@@ -379,14 +379,14 @@ LimitNOFILE=65536
 WantedBy=multi-user.target
 EOF
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 #for ip in ${!iphostmap[@]}
 for (( i=0; i < ${#MASTER_IPS[@]}; i++ ))
   do
     sed -e "s/##MASTER_NAME##/${MASTER_HOSTS[$i]}/" -e "s/##MASTER_IP##/${MASTER_IPS[$i]}/" kube-apiserver.service.template > kube-apiserver-${MASTER_IPS[$i]}.service 
   done
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 for master_ip in ${MASTER_IPS[@]}
   do
     echo ">>> ${master_ip}"

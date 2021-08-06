@@ -3,12 +3,12 @@
 # kubelet is mainly for worker nodes, but we can run kubelet on master hosts
 basepath=$(cd `dirname $0`; pwd)
 COMPONENTS_DIR=${basepath}/../components
-
 source ${basepath}/../USERDATA
-source /opt/k8s/work/iphostinfo
-source /opt/k8s/bin/environment.sh
 
-cd /opt/k8s/work
+source ${K8S_INSTALL_ROOT}/work/iphostinfo
+source ${K8S_INSTALL_ROOT}/bin/environment.sh
+
+cd ${K8S_INSTALL_ROOT}/work
 if [ $MASTER_WORKER_SEPERATED = true ] &&  [ "$SHOW_MASTER" = "true" ]; then
   for host in ${iphostmap[@]}
   do
@@ -75,7 +75,7 @@ else
   done
 fi
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 if [ $MASTER_WORKER_SEPERATED = true ] &&  [ "$SHOW_MASTER" = "true" ]; then
   for host in ${iphostmap[@]}
   do
@@ -90,7 +90,7 @@ else
   done
 fi
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 cat > kubelet-config.yaml.template <<EOF
 kind: KubeletConfiguration
 apiVersion: kubelet.config.k8s.io/v1beta1
@@ -162,7 +162,7 @@ kubeReservedCgroup: ""
 enforceNodeAllocatable: ["pods"]
 EOF
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 if [ $MASTER_WORKER_SEPERATED = true ] &&  [ "$SHOW_MASTER" = "true" ]; then
   for machine_ip in ${!iphostmap[@]}
   do
@@ -179,7 +179,7 @@ else
   done
 fi
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 cat > kubelet.service.template <<EOF
 [Unit]
 Description=Kubernetes Kubelet
@@ -189,7 +189,7 @@ Requires=containerd.service
 
 [Service]
 WorkingDirectory=${K8S_DIR}/kubelet
-ExecStart=/opt/k8s/bin/kubelet \\
+ExecStart=${K8S_INSTALL_ROOT}/bin/kubelet \\
   --bootstrap-kubeconfig=/etc/kubernetes/kubelet-bootstrap.kubeconfig \\
   --cert-dir=/etc/kubernetes/cert \\
   --network-plugin=cni \\
@@ -212,7 +212,7 @@ StartLimitInterval=0
 WantedBy=multi-user.target
 EOF
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 if [ $MASTER_WORKER_SEPERATED = true ] &&  [ "$SHOW_MASTER" = "true" ]; then
   for machine_name in ${iphostmap[@]}
   do
@@ -235,7 +235,7 @@ echo "creating  clusterrolebinding kubelet-bootstrap"
 kubectl create clusterrolebinding kubelet-bootstrap --clusterrole=system:node-bootstrapper --group=system:bootstrappers
 # what is the impact????
 
-cd /opt/k8s/work
+cd ${K8S_INSTALL_ROOT}/work
 cat > csr-crb.yaml <<EOF
  # Approve all CSRs for the group "system:bootstrappers"
  kind: ClusterRoleBinding
