@@ -38,7 +38,7 @@ systemctl disable kubelet kube-proxy kube-nginx
 
 ##停容器进程
 crictl ps -q | xargs crictl stop
-killall -9 containerd-shim-runc-v1 pause
+kill -9 containerd-shim-runc-v1 pause
 
 ##停 containerd 服务
 systemctl stop containerd && systemctl disable containerd
@@ -46,16 +46,33 @@ systemctl stop containerd && systemctl disable containerd
 ##清理文件
 ### umount k8s 挂载的目录
 #mount |grep -E 'kubelet|cni|containerd' | awk '{print $3}'|xargs umount
+
 ### 删除 kubelet 目录
 rm -rf ${K8S_DIR}/bin/kubelet
+
 ### 删除 docker 目录
-rm -rf ${DOCKER_DIR}
+if [ -d "${DOCKER_DIR}" ]; then
+    rm -rf ${DOCKER_DIR}
+fi
+
 ### 删除 containerd 目录
-rm -rf ${CONTAINERD_DIR}
+if [ -d "${CONTAINERD_DIR}" ]; then
+    rm -rf ${CONTAINERD_DIR}
+fi
+
 ### 删除 systemd unit 文件
-rm -rf /etc/systemd/system/{kubelet,kube-proxy,containerd,kube-nginx}.service
+rm -rf /etc/systemd/system/{kubelet,kube-proxy}.service
+if [ -f "/etc/systemd/system/containerd.service" ]; then
+    rm -rf /etc/systemd/system/containerd.service
+fi
+
+if [ -f "/etc/systemd/system/kube-nginx.service" ]; then
+    rm -rf /etc/systemd/system/kube-nginx.service
+fi
+
 ### 删除程序文件
 rm -rf ${K8S_INSTALL_ROOT}/bin/*
+
 ### 删除证书文件
 rm -rf /etc/flanneld/cert /etc/kubernetes/cert
 
