@@ -16,7 +16,11 @@ if [ ${#WORKER_IPS[@]} != ${#WORKER_HOSTS[@]} ]; then
     exit 1
 fi
 
-setiphostmap_scenario1() {
+##############################################################################################
+##############################################################################################
+##############################################################################################
+
+master_worker_on_same_hosts() {
   # MASTWR and WORKER are on exact same hosts
   cat > ${K8S_INSTALL_ROOT}/work/iphostinfo << EOF
   declare -A iphostmap
@@ -30,7 +34,9 @@ setiphostmap_scenario1() {
 EOF
 }
 
-setiphostmap_scenario2() {
+##############################################################################################
+master_worker_on_seperated_hosts() 
+{
   # MASTWR and WORKER are completely on different hosts
   cat > ${K8S_INSTALL_ROOT}/work/iphostinfo << EOF
   declare -A iphostmap
@@ -49,6 +55,7 @@ setiphostmap_scenario2() {
 ` )
 EOF
 }
+##############################################################################################
 
 # in our configuration, we only handle two scenarios:
 # 1) the master and node are same
@@ -73,7 +80,7 @@ if [ "$sorted_master_ips" = "$sorted_worker_ips" ]; then
            mkdir -p ${K8S_INSTALL_ROOT}/work
        fi
 
-       setiphostmap_scenario1
+       master_worker_on_same_hosts
    fi
 else
    # echo not exactly same
@@ -94,7 +101,7 @@ else
            mkdir -p ${K8S_INSTALL_ROOT}/work
        fi
        
-       setiphostmap_scenario2
+       master_worker_on_seperated_hosts
    fi
 fi
 
@@ -107,3 +114,7 @@ fi
 ## then we don't need to install packages or copy multiple times on same IP 
 #unique_ips=`printf "%s\n" ${IP_MASTERS[@]}  ${IP_MASTERS[@]}  |sort -u`
 ## unique_ips is a string, not array
+
+##############################################################################################
+##############################################################################################
+##############################################################################################

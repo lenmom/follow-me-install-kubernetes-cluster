@@ -4,6 +4,9 @@ source $(cd `dirname $0`; pwd)/../USERDATA
 
 if [ ! -d "${K8S_INSTALL_ROOT}/work" ]; then
     mkdir -p ${K8S_INSTALL_ROOT}/{bin,work}
+    mkdir -p ${K8S_INSTALL_ROOT}/work/etc/{kubernetes,etcd,flanneld}/cert
+    mkdir -p ${K8S_INSTALL_ROOT}/work/etc/docker
+    mkdir -p ${K8S_INSTALL_ROOT}/work/etc/systemd/system
 fi
 
 if [ ! -f "${K8S_INSTALL_ROOT}/work/iphostinfo" ]; then
@@ -27,25 +30,33 @@ fi
 cat << EOF > ${K8S_INSTALL_ROOT}/bin/initial_host_config.sh
 #!/bin/bash
 
+##############################################################################################
+
 #1. set host name
 `for K in ${!iphostmap[@]}
 do
-  echo "echo $K  ${iphostmap[$K]} >> /etc/hosts"
+  echo "sed -i '/${K}/d' /etc/hosts &&  echo $K  ${iphostmap[$K]} >> /etc/hosts"
 done`
 #hostnamectl set-hostname iphostmap[$ip]  # it will not work as this is a general script
-echo "PATH=/opt/k8s/bin:\$PATH" >> /root/.bashrc    # >> is literbally, not redirect
+sed -i "/PATH=${K8S_INSTALL_ROOT}/bin:\$PATH/d" /root/.bashrc  #delete line which contains specified content.
+echo "PATH=${K8S_INSTALL_ROOT}/bin:\$PATH" >> /root/.bashrc    # >> is literbally, not redirect
+
+##############################################################################################
 
 #2. system upgrade
 ## we cannot put jq in the same line as epel-release as jq is from epel-release repo
 yum -y update
 yum -y install epel-release 
 
+##############################################################################################
 
 #3. system dependancy install
 ##3.1 kube-proxy use ipvs mode，ipvsadm is the management tool for ipvs
 ##3.2 chrony is the time sync tool for the cluster
 yum -y install chrony conntrack ipvsadm ipset jq iptables curl sysstat libseccomp wget socat git
 timedatectl set-timezone Asia/Shanghai
+
+##############################################################################################
 
 # 4. close & disable firewall service
 # no need to do the following as centos 7 EC2 doesn't load firewalld
@@ -54,16 +65,21 @@ timedatectl set-timezone Asia/Shanghai
 #iptables -F && iptables -X && iptables -F -t nat && iptables -X -t na t
 #iptables -P FORWARD ACCEPT
 
+##############################################################################################
+
 #5. turn off SELINUX
 setenforce 0
 sed -i 's/^SELINUX=.*/SELINUX=disabled/' /etc/selinux/config
+
+##############################################################################################
 
 #6. turn off swap
 swapoff -a
 sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab 
 
-mkdir -p /opt/k8s/{bin,work} /etc/{kubernetes,etcd}/cert
+mkdir -p ${K8S_INSTALL_ROOT}/{bin,work} /etc/{kubernetes,etcd}/cert
 
+##############################################################################################
 
 #7. kernel parameter tuning
 ###Make sure that the br_netfilter module is loaded. This can be done by running 
@@ -79,6 +95,8 @@ echo br_netfilter >  /etc/modules-load.d/kubernetes.conf
 echo nf_conntrack >> /etc/modules-load.d/kubernetes.conf
 
 sysctl -p /etc/modules-load.d/kubernetes.conf   # make configuration take effect
+
+##############################################################################################
 
 #7.2 /etc/sysctl.d/kubernetes.conf
 modprobe br_netfilter  # load kernel network module.
@@ -116,6 +134,7 @@ chmod 755 /etc/sysconfig/modules/ipvs.modules
 /bin/bash /etc/sysconfig/modules/ipvs.modules 
 lsmod | grep -e ip_vs -e nf_conntrack_ipv4
 
+##############################################################################################
 
 #7.3 upgrade linux kernel to version upper than 4.44
 rpm -Uvh http://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm
@@ -131,7 +150,7 @@ EOF
 
 for ip in  ${!iphostmap[@]}
 do
-  scp /opt/k8s/bin/initial_host_config.sh root@${ip}:/root/
+  scp ${K8S_INSTALL_ROOT}/bin/initial_host_config.sh root@${ip}:/root/
   #ssh root@${ip} "chmod +x /root/initial_host_config.sh; hostnamectl set-hostname ${iphostmap[$ip]}; /root/initial_host_config.sh"
 
   ## put in foreground then we can see the error. We can put in background using command below, but then we need to check the log
@@ -140,14 +159,14 @@ do
   #ssh root@${ip} "chmod +x /root/initial_host_config.sh; hostnamectl set-hostname ${iphostmap[$ip]}; /root/initial_host_config.sh > /tmp/initial_host_config.log 2>&1 &"
   
   # now we find a good sl=olution. the way be,ow will still send the output to the screen
-  ssh root@${ip} "chmod +x /root/initial_host_config.sh; hostnamectl set-hostname ${iphostmap[$ip]}; /root/initial_host_config.sh" &
+  ssh root@${ip} "chmod +x /root/initial_host_config.sh; hostnamectl set-hostname ${iphostmap[$ip]}; hostnamectl set-hostname --static ${iphostmap[$ip]}; /root/initial_host_config.sh" &
   # we put in background only want to save time... note te & is outside the quote!
 
 done
 
 ##############################################################################################
 
-cat << EOF  > /opt/k8s/bin/environment.sh
+cat << EOF  > ${K8S_INSTALL_ROOT}/bin/environment.sh
 #!/usr/bin/bash
 
 # 生成 EncryptionConfig 所需的加密 key
@@ -218,19 +237,19 @@ export CLUSTER_DNS_SVC_IP="10.254.0.2"
 # 集群 DNS 域名（末尾不带点号）
 export CLUSTER_DNS_DOMAIN="cluster.local"
 
-# 将二进制目录 /opt/k8s/bin 加到 PATH 中
-export PATH=/opt/k8s/bin:\$PATH
+# 将二进制目录 ${K8S_INSTALL_ROOT}/bin 加到 PATH 中
+export PATH=${K8S_INSTALL_ROOT}/bin:\$PATH
 EOF
 
 ##############################################################################################
-#source /opt/k8s/bin/environment.sh # 先修改
+#source ${K8S_INSTALL_ROOT}/bin/environment.sh # 先修改
 #I changed the logic. I don't put the IPs and hosts in the environment.sh any more
 for ip in ${!iphostmap[@]}    # cross-board
   do
     echo ">>> ${ip}"
-    ssh root@${ip} "mkdir -p /opt/k8s/bin/"
+    ssh root@${ip} "mkdir -p ${K8S_INSTALL_ROOT}/bin/"
     # in case the initial_host_config has not created this folder yet, do we really need this file on the nother nodes ?
-    scp /opt/k8s/bin/environment.sh root@${ip}:/opt/k8s/bin/
+    scp ${K8S_INSTALL_ROOT}/bin/environment.sh root@${ip}:${K8S_INSTALL_ROOT}/bin/
   done
 
 #sleep 1200 # need to wait enough time
@@ -241,7 +260,7 @@ for ip in ${!iphostmap[@]}    # cross-board
 #  done
 
 # do it on this localhost - in the case we run on a instance not in the k8s nodes
-chmod +x /opt/k8s/bin/*
+chmod +x ${K8S_INSTALL_ROOT}/bin/*
 yum -y install epel-release
 yum install -y wget git jq  # we need the package on this machine
 # jq is needed in this central box. in 08-02.sh, the downloaded deploy.sh inside the  coredns-deployment uses jq command

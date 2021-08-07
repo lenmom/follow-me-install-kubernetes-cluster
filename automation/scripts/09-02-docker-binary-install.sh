@@ -117,13 +117,13 @@ EOF
 
 install_docker()
 {
-    mkdir -p  ${K8S_INSTALL_ROOT}/etc/systemd/system/
-    mkdir -p  ${K8S_INSTALL_ROOT}/etc/docker
+    mkdir -p  ${K8S_INSTALL_ROOT}/work/etc/systemd/system/
+    mkdir -p  ${K8S_INSTALL_ROOT}/work/etc/docker
     cp ${K8S_INSTALL_ROOT}/work/docker/*  ${K8S_INSTALL_ROOT}/bin/
     chmod +x ${K8S_INSTALL_ROOT}/bin/*
 
-    cp docker.service     ${K8S_INSTALL_ROOT}/etc/systemd/system/
-    cp docker-daemon.json ${K8S_INSTALL_ROOT}/etc/docker/daemon.json
+    cp docker.service     ${K8S_INSTALL_ROOT}/work/etc/systemd/system/
+    cp docker-daemon.json ${K8S_INSTALL_ROOT}/work/etc/docker/daemon.json
 
     if [ ! $DRY_RUN = true ]; then
         for worker_ip in ${!iphostmap[@]}    # need to verify whether it is needed every nodes 

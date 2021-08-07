@@ -1,10 +1,10 @@
 ############### CHANGE TO YOUR IP and HOST #######################
 
 MASTER_IPS=(10.10.1.201 10.10.1.202 10.10.1.203)
-MASTER_HOSTS=(k8s-01 k8s-02 k8s-03)
+MASTER_HOSTS=(k8s-10-24-201 k8s-10-24-202 k8s-10-24-203)
 
 WORKER_IPS=(10.10.1.201 10.10.1.202 10.10.1.203)
-WORKER_HOSTS=(k8s-01 k8s-02 k8s-03)
+MASTER_HOSTS=(k8s-10-24-201 k8s-10-24-202 k8s-10-24-203)
 
 ############################ OPTIONAL ############################
 
@@ -19,3 +19,6 @@ FLANNEL_VERSION=v0.13.0
 DOCKER_VERSION=18.09.6
 
 K8S_VERSION=v1.16.7
+
+#true: only simulate the running process,not deploy to the cluster machines
+DRY_RUN=true

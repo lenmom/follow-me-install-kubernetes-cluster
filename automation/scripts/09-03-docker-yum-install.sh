@@ -77,7 +77,7 @@ install_docker()
 ###Azure: dockerhub.azk8s.cn
 ###ustc: https://docker.mirrors.ustc.edu.cn
 
-configrate_docker() 
+configrate_docker_daemon() 
 {
 ##"insecure-registries": ["docker02:35000"],
 cat > docker-daemon.json <<EOF
@@ -120,7 +120,7 @@ Description=Docker Application Container Engine
 Documentation=https://docs.docker.com
 
 [Service]
-WorkingDirectory=##DOCKER_DIR##
+WorkingDirectory=/var/lib/docker
 Environment="PATH=##K8S_INSTALL_ROOT##/bin:/bin:/sbin:/usr/bin:/usr/sbin"
 EnvironmentFile=-/run/flannel/docker
 # the default is not to use systemd for cgroups because the delegate issues still
@@ -152,13 +152,13 @@ StartLimitInterval=60s
 WantedBy=multi-user.target
 EOF
 
-    sed -i -e "s|##DOCKER_DIR##|${DOCKER_DIR}|" docker.service
+    #sed -i -e "s|##DOCKER_DIR##|${DOCKER_DIR}|" docker.service
     sed -i -e "s|##K8S_INSTALL_ROOT##|${K8S_INSTALL_ROOT}|" docker.service
 
-    mkdir -p  ${K8S_INSTALL_ROOT}/etc/systemd/system/
-    mkdir -p  ${K8S_INSTALL_ROOT}/etc/docker
-    cp docker.service     ${K8S_INSTALL_ROOT}/etc/systemd/system/
-    cp docker-daemon.json ${K8S_INSTALL_ROOT}/etc/docker/daemon.json
+    mkdir -p  ${K8S_INSTALL_ROOT}/work/etc/systemd/system/
+    mkdir -p  ${K8S_INSTALL_ROOT}/work/etc/docker
+    cp docker.service     ${K8S_INSTALL_ROOT}/work/etc/systemd/system/
+    cp docker-daemon.json ${K8S_INSTALL_ROOT}/work/etc/docker/daemon.json
     
     if [ ! $DRY_RUN = true ]; then
         for worker_ip in ${!iphostmap[@]}    # need to verify whether it is needed every nodes 
@@ -175,7 +175,7 @@ cd ${K8S_INSTALL_ROOT}/work
 
 uninstall_docker
 install_docker
-configrate_docker
+configrate_docker_daemon
 process_docker_service
 
 ##############################################################################################
