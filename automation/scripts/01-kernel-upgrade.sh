@@ -1,15 +1,16 @@
 #!/bin/bash
 
-if [ ! -d "/opt/k8s/work" ]; then
-    mkdir -p /opt/k8s/{bin,work}
+source $(cd `dirname $0`; pwd)/../USERDATA
+
+if [ ! -d "${K8S_INSTALL_ROOT}/work" ]; then
+    mkdir -p ${K8S_INSTALL_ROOT}/{bin,work}
 fi
 
-if [ ! -f "/opt/k8s/work/iphostinfo" ]; then
+if [ ! -f "${K8S_INSTALL_ROOT}/work/iphostinfo" ]; then
     $(cd `dirname $0`; pwd)/00-hosts-preparation.sh
 fi
 
-source $(cd `dirname $0`; pwd)/../USERDATA
-source /opt/k8s/work/iphostinfo
+source ${K8S_INSTALL_ROOT}/work/iphostinfo
 
 if [ ! -d "/etc/kubernetes/cert" ]; then
     mkdir -p /etc/kubernetes/cert
@@ -19,24 +20,68 @@ if [ ! -d "/etc/etcd/cert" ]; then
     mkdir -p /etc/etcd/cert
 fi
 
-################################
+##############################################################################################
+##############################################################################################
+##############################################################################################
 
-cat << EOF > /opt/k8s/bin/initial_host_config.sh
+cat << EOF > ${K8S_INSTALL_ROOT}/bin/initial_host_config.sh
+#!/bin/bash
+
+#1. set host name
 `for K in ${!iphostmap[@]}
 do
   echo "echo $K  ${iphostmap[$K]} >> /etc/hosts"
 done`
 #hostnamectl set-hostname iphostmap[$ip]  # it will not work as this is a general script
 echo "PATH=/opt/k8s/bin:\$PATH" >> /root/.bashrc    # >> is literbally, not redirect
+
+#2. system upgrade
+## we cannot put jq in the same line as epel-release as jq is from epel-release repo
 yum -y update
 yum -y install epel-release 
-# we cannot put jq in the same line as epel-release as jq is from epel-release repo
+
+
+#3. system dependancy install
+##3.1 kube-proxy use ipvs mode，ipvsadm is the management tool for ipvs
+##3.2 chrony is the time sync tool for the cluster
 yum -y install chrony conntrack ipvsadm ipset jq iptables curl sysstat libseccomp wget socat git
-mkdir -p /opt/k8s/{bin,work} /etc/{kubernetes,etcd}/cert
+timedatectl set-timezone Asia/Shanghai
+
+# 4. close & disable firewall service
+# no need to do the following as centos 7 EC2 doesn't load firewalld
+#systemctl stop firewalld
+#systemctl disable firewalld
+#iptables -F && iptables -X && iptables -F -t nat && iptables -X -t na t
+#iptables -P FORWARD ACCEPT
+
+#5. turn off SELINUX
 setenforce 0
 sed -i 's/^SELINUX=.*/SELINUX=disabled/' /etc/selinux/config
+
+#6. turn off swap
+swapoff -a
+sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab 
+
+mkdir -p /opt/k8s/{bin,work} /etc/{kubernetes,etcd}/cert
+
+
+#7. kernel parameter tuning
+###Make sure that the br_netfilter module is loaded. This can be done by running 
+###     lsmod | grep br_netfilter. 
+###To load it explicitly call    
+###     sudo modprobe br_netfilter.
+###As a requirement for your Linux Nodes iptables to correctly see bridged traffic, you should ensure 
+###     net.bridge.bridge-nf-call-iptables is set to 1 in your sysctl config.
+###set firewall forward rules to prevent message being intercepted by firewall.
+
+#7.1 /etc/modules-load.d/kubernetes.conf
 echo br_netfilter >  /etc/modules-load.d/kubernetes.conf
 echo nf_conntrack >> /etc/modules-load.d/kubernetes.conf
+
+sysctl -p /etc/modules-load.d/kubernetes.conf   # make configuration take effect
+
+#7.2 /etc/sysctl.d/kubernetes.conf
+modprobe br_netfilter  # load kernel network module.
 
 echo net.bridge.bridge-nf-call-iptables=1 > /etc/sysctl.d/kubernetes.conf
 echo net.bridge.bridge-nf-call-ip6tables=1 >> /etc/sysctl.d/kubernetes.conf
@@ -55,12 +100,24 @@ echo fs.nr_open=52706963 >> /etc/sysctl.d/kubernetes.conf
 echo net.ipv6.conf.all.disable_ipv6=1 >> /etc/sysctl.d/kubernetes.conf
 echo net.netfilter.nf_conntrack_max=2310720 >> /etc/sysctl.d/kubernetes.conf
 
-# no need to do the following as centos 7 EC2 doesn't load firewalld
-#systemctl stop firewalld
-#systemctl disable firewalld
-#iptables -F && iptables -X && iptables -F -t nat && iptables -X -t na t
-#iptables -P FORWARD ACCEPT
-timedatectl set-timezone America/New_York
+sysctl -p /etc/sysctl.d/kubernetes.conf   # make configuration take effect
+
+#/etc/sysconfig/modules/ipvs.modules
+##kube-proxy require ipvs to be loaded in order to take function
+echo    #!/bin/bash                     >/etc/sysconfig/modules/ipvs.modules
+echo    modprobe -- ip_vs              >>/etc/sysconfig/modules/ipvs.modules
+echo    modprobe -- ip_vs_rr           >>/etc/sysconfig/modules/ipvs.modules
+echo    modprobe -- ip_vs_wrr          >>/etc/sysconfig/modules/ipvs.modules
+echo    modprobe -- ip_vs_sh           >>/etc/sysconfig/modules/ipvs.modules
+echo    modprobe -- nf_conntrack_ipv4  >>/etc/sysconfig/modules/ipvs.modules
+
+modprobe br_netfilter  # load kernel network module.
+chmod 755 /etc/sysconfig/modules/ipvs.modules
+/bin/bash /etc/sysconfig/modules/ipvs.modules 
+lsmod | grep -e ip_vs -e nf_conntrack_ipv4
+
+
+#7.3 upgrade linux kernel to version upper than 4.44
 rpm -Uvh http://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm
 # 安装完成后检查 /boot/grub2/grub.cfg 中对应内核 menuentry 中是否包含 initrd16 配置，如果没有，再安装一次！
 yum --enablerepo=elrepo-kernel install -y kernel-lt
@@ -69,6 +126,8 @@ grub2-set-default 0
 sync
 # init 6   # take it out as the reboot can cause the scp environent.sh fail as the instance are not up yet
 EOF
+
+##############################################################################################
 
 for ip in  ${!iphostmap[@]}
 do
@@ -86,7 +145,7 @@ do
 
 done
 
-################################
+##############################################################################################
 
 cat << EOF  > /opt/k8s/bin/environment.sh
 #!/usr/bin/bash
@@ -163,6 +222,7 @@ export CLUSTER_DNS_DOMAIN="cluster.local"
 export PATH=/opt/k8s/bin:\$PATH
 EOF
 
+##############################################################################################
 #source /opt/k8s/bin/environment.sh # 先修改
 #I changed the logic. I don't put the IPs and hosts in the environment.sh any more
 for ip in ${!iphostmap[@]}    # cross-board
@@ -243,3 +303,7 @@ do
 done 
 
 echo "======= step 01 is completed ===="
+
+##############################################################################################
+##############################################################################################
+##############################################################################################
