@@ -13,3 +13,9 @@ SHOW_MASTER=true
 ########################### INSTALL ROOT #########################
 
 K8S_INSTALL_ROOT=/opt/k8s
+
+FLANNEL_VERSION=v0.13.0
+
+DOCKER_VERSION=18.09.6
+
+K8S_VERSION=v1.16.7
