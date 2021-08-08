@@ -53,7 +53,7 @@ prepare_docker_bin()
 ###f) docker 从 1.13 版本开始，可能将iptables FORWARD chain的默认策略设置为DROP，从而导致 ping 其它 Node 上的 Pod IP 失败，遇到这种情况时，需要手动设置策略为ACCEPT：iptables -P FORWARD ACCEPT
 process_docker_service() 
 {
-    cat > docker.service <<"EOF"
+cat > docker.service <<"EOF"
 [Unit]
 Description=Docker Application Container Engine
 Documentation=http://docs.docker.io
@@ -92,25 +92,28 @@ EOF
 ##"insecure-registries": ["docker02:35000"],
 configrate_docker_daemon() 
 {
-cat > docker-daemon.json <<EOF
-{
-    "exec-opts": ["native.cgroupdriver=systemd"],   
-    "log-driver": "json-file", 
-    "storage-driver": "overlay2",
-    "storage-opts": ["overlay2.override_kernel_check=true"]
-    "registry-mirrors": ["https://docker.mirrors.ustc.edu.cn","https://5f2jam6c.mirror.aliyuncs.com","https://hub-mirror.c.163.com"],
-    "max-concurrent-downloads": 20,
-    "live-restore": true,
-    "max-concurrent-uploads": 10,
-    "debug": true,
-    "data-root": "${DOCKER_DIR}/data",
-    "exec-root": "${DOCKER_DIR}/exec",
-    "log-opts": {
-      "max-size": "100m",
-      "max-file": "5"
-    }
-}
-EOF  
+# cat > docker-daemon.json <<EOF
+# {
+#     "exec-opts": ["native.cgroupdriver=systemd"],   
+#     "log-driver": "json-file", 
+#     "storage-driver": "overlay2",
+#     "storage-opts": ["overlay2.override_kernel_check=true"]
+#     "registry-mirrors": ["https://docker.mirrors.ustc.edu.cn","https://5f2jam6c.mirror.aliyuncs.com","https://hub-mirror.c.163.com"],
+#     "max-concurrent-downloads": 20,
+#     "live-restore": true,
+#     "max-concurrent-uploads": 10,
+#     "debug": true,
+#     "data-root": "${DOCKER_DIR}/data",
+#     "exec-root": "${DOCKER_DIR}/exec",
+#     "log-opts": {
+#       "max-size": "100m",
+#       "max-file": "5"
+#     }
+# }
+# EOF 
+
+  cp ${COMPONENTS_DIR}/docker-daemon.json  .
+  sed -i -e "s|##DOCKER_DIR##|${DOCKER_DIR}|" ${K8S_INSTALL_ROOT}/work/docker-daemon.json
 }
 
 ##############################################################################################
@@ -133,7 +136,7 @@ install_docker()
             ssh root@${worker_ip} "chmod +x ${K8S_INSTALL_ROOT}/bin/*"
 
             echo ">>> ${worker_ip} distribute docker-${DOCKER_VERSION} docker.service"
-            scp docker.service root@${node_ip}:/etc/systemd/system/
+            scp docker.service root@${worker_ip}:/etc/systemd/system/
             ssh root@${worker_ip} "sed -i -e 's|/sbin/iptables -P FORWARD ACCEPT| |' /etc/rc.local"
             ssh root@${worker_ip} "cat  /sbin/iptables -P FORWARD ACCEPT >> /etc/rc.local"
             ssh root@${worker_ip} "iptables -P FORWARD ACCEPT"
