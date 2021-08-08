@@ -1,10 +1,10 @@
 ############### CHANGE TO YOUR IP and HOST #######################
 
-MASTER_IPS=(10.10.1.201 10.10.1.202 10.10.1.203)
-MASTER_HOSTS=(k8s-10-24-201 k8s-10-24-202 k8s-10-24-203)
+MASTER_IPS=(10.10.1.201  10.10.1.202  10.10.1.203)
+MASTER_HOSTS=(k8s-10-24-201  k8s-10-24-202  k8s-10-24-203)
 
-WORKER_IPS=(10.10.1.201 10.10.1.202 10.10.1.203)
-MASTER_HOSTS=(k8s-10-24-201 k8s-10-24-202 k8s-10-24-203)
+WORKER_IPS=(10.10.1.201  10.10.1.202  10.10.1.203)
+WORKER_HOSTS=(k8s-10-24-201  k8s-10-24-202  k8s-10-24-203)
 
 ############################ OPTIONAL ############################
 
@@ -20,5 +20,10 @@ DOCKER_VERSION=18.09.6
 
 K8S_VERSION=v1.16.7
 
+#effective network interface name.
+EffectiveNI=ens192
+
+FLANNEL_ETCD_PREFIX=flannel_etcd
+
 #true: only simulate the running process,not deploy to the cluster machines
-DRY_RUN=true
+DRY_RUN=false

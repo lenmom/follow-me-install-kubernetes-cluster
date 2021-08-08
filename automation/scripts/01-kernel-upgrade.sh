@@ -136,10 +136,17 @@ lsmod | grep -e ip_vs -e nf_conntrack_ipv4
 
 ##############################################################################################
 
-#7.3 upgrade linux kernel to version upper than 4.44
+#7.3 upgrade linux kernel to version upper than 4.18+
 rpm -Uvh http://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm
+
+#由于 GFW 的原因，使用 elrepo 官方源可能速度较慢，可将 baseurl 修改为国内镜像站地址。
+#https://mirrors.tuna.tsinghua.edu.cn/elrepo/kernel/el7/x86_64/
+#https://mirrors.ustc.edu.cn/elrepo/elrepo/el7/x86_64/
+
 # 安装完成后检查 /boot/grub2/grub.cfg 中对应内核 menuentry 中是否包含 initrd16 配置，如果没有，再安装一次！
 yum --enablerepo=elrepo-kernel install -y kernel-lt
+#cat /boot/grub2/grub.cfg | grep menuentry
+
 # 设置开机从新内核启动
 grub2-set-default 0
 sync

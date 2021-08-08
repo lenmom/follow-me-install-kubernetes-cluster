@@ -13,7 +13,10 @@ fi
 source ${basepath}/../USERDATA
 source ${K8S_INSTALL_ROOT}/bin/environment.sh
 
-###### 04: etcd ####
+##############################################################################################
+##############################################################################################
+##############################################################################################
+
 cd ${K8S_INSTALL_ROOT}/work
 
 if [ ! -d "${K8S_INSTALL_ROOT}/work/etcd-v3.4.3-linux-amd64" ]; then
@@ -25,16 +28,17 @@ if [ ! -d "${K8S_INSTALL_ROOT}/work/etcd-v3.4.3-linux-amd64" ]; then
     tar -xvf ${COMPONENTS_DIR}/etcd-v3.4.3-linux-amd64.tar.gz -C ${K8S_INSTALL_ROOT}/work/
 fi 
 
-cd ${K8S_INSTALL_ROOT}/work
+
+cp ${K8S_INSTALL_ROOT}/work/etcd-v3.4.3-linux-amd64/etcd*   ${K8S_INSTALL_ROOT}/bin
+
 for master_ip in ${MASTER_IPS[@]}
   do
     echo ">>> ${master_ip}"
-    scp etcd-v3.4.3-linux-amd64/etcd* root@${master_ip}:${K8S_INSTALL_ROOT}/bin
+    scp ${K8S_INSTALL_ROOT}/work/etcd-v3.4.3-linux-amd64/etcd* root@${master_ip}:${K8S_INSTALL_ROOT}/bin
     ssh root@${master_ip} "chmod +x ${K8S_INSTALL_ROOT}/bin/*"
   done
 
-cd ${K8S_INSTALL_ROOT}/work
-cat > etcd-csr.json <<EOF
+cat > ${K8S_INSTALL_ROOT}/work/etcd-csr.json <<EOF
 {
   "CN": "etcd",
   "hosts": [
@@ -117,7 +121,8 @@ ExecStart=${K8S_INSTALL_ROOT}/bin/etcd \\
   --max-request-bytes=33554432 \\
   --quota-backend-bytes=6442450944 \\
   --heartbeat-interval=250 \\
-  --election-timeout=2000
+  --election-timeout=2000  \\
+  --enable-v2
 Restart=on-failure
 RestartSec=5
 LimitNOFILE=65536

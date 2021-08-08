@@ -36,6 +36,8 @@ prepare_flannel_bin()
             wget https://github.com/flannel-io/flannel/releases/download/${FLANNEL_VERSION}/flannel-${FLANNEL_VERSION}-linux-amd64.tar.gz
             mv flannel-${FLANNEL_VERSION}-linux-amd64.tar.gz ${COMPONENTS_DIR}/
         fi
+
+        mkdir -p ${K8S_INSTALL_ROOT}/work/flannel
         tar -xzvf ${COMPONENTS_DIR}/flannel-${FLANNEL_VERSION}-linux-amd64.tar.gz -C ${K8S_INSTALL_ROOT}/work/flannel
     fi 
 
@@ -43,13 +45,13 @@ prepare_flannel_bin()
     chmod +x ${K8S_INSTALL_ROOT}/bin/*
 
     if [ ! $DRY_RUN = true ]; then
-    for ip in ${!iphostmap[@]}    # need to verify whether it is needed every nodes 
-    do
-        echo ">>> ${ip} ${K8S_INSTALL_ROOT}/work/flannel/{flanneld,mk-docker-opts.sh}"
-        scp ${K8S_INSTALL_ROOT}/work/flannel/{flanneld,mk-docker-opts.sh} root@${ip}:${K8S_INSTALL_ROOT}/bin/
-        ssh root@${ip} "chmod +x ${K8S_INSTALL_ROOT}/bin/*"
-    done
-fi
+        for ip in ${!iphostmap[@]}    # need to verify whether it is needed every nodes 
+        do
+            echo ">>> ${ip} ${K8S_INSTALL_ROOT}/work/flannel/{flanneld,mk-docker-opts.sh}"
+            scp ${K8S_INSTALL_ROOT}/work/flannel/{flanneld,mk-docker-opts.sh} root@${ip}:${K8S_INSTALL_ROOT}/bin/
+            ssh root@${ip} "chmod +x ${K8S_INSTALL_ROOT}/bin/*"
+        done
+    fi
 
 }
 
@@ -78,10 +80,10 @@ cat > ${K8S_INSTALL_ROOT}/work/flanneld-csr.json <<EOF
 }
 EOF
 
-    ${K8S_INSTALL_ROOT}/work/cfssl gencert -ca=${K8S_INSTALL_ROOT}/work/ca.pem \
+    ${K8S_INSTALL_ROOT}/bin/cfssl gencert -ca=${K8S_INSTALL_ROOT}/work/ca.pem \
     -ca-key=${K8S_INSTALL_ROOT}/work/ca-key.pem \
     -config=${K8S_INSTALL_ROOT}/work/ca-config.json \
-    -profile=kubernetes ${K8S_INSTALL_ROOT}/work/flanneld-csr.json | ${K8S_INSTALL_ROOT}/work/cfssljson -bare flanneld
+    -profile=kubernetes ${K8S_INSTALL_ROOT}/work/flanneld-csr.json | ${K8S_INSTALL_ROOT}/bin/cfssljson -bare flanneld
 
     ls ${K8S_INSTALL_ROOT}/work/flanneld*pem
 
@@ -89,21 +91,38 @@ EOF
     cp  ${K8S_INSTALL_ROOT}/work/flanneld*.pem  ${K8S_INSTALL_ROOT}/work/etc/flanneld/cert/
 
     if [ ! $DRY_RUN = true ]; then
-        #向 etcd 写入集群 Pod 网段信息   本步骤只需执行一次
-        etcdctl \
+    
+        ETCDCTL_API=2 ${K8S_INSTALL_ROOT}/bin/etcdctl \
         --endpoints=${ETCD_ENDPOINTS} \
         --ca-file=${K8S_INSTALL_ROOT}/work/ca.pem \
         --cert-file=${K8S_INSTALL_ROOT}/work/flanneld.pem \
         --key-file=${K8S_INSTALL_ROOT}/work/flanneld-key.pem \
-        put ${FLANNEL_ETCD_PREFIX}/config '{"Network":"'${CLUSTER_CIDR}'", "SubnetLen": 21, "Backend": {"Type": "vxlan"}}'
+        mk ${FLANNEL_ETCD_PREFIX}/config '{"Network":"'${CLUSTER_CIDR}'", "SubnetLen": 21, "Backend": {"Type": "vxlan"}}'
+
+        # #write pod network config info into etcd cluster,
+        # #this step reqiured to run only once is ok.
+        # ETCDCTL_API=3 ${K8S_INSTALL_ROOT}/bin/etcdctl \
+        # --endpoints=${ETCD_ENDPOINTS} \
+        # --cacert=${K8S_INSTALL_ROOT}/work/ca.pem \
+        # --cert=${K8S_INSTALL_ROOT}/work/flanneld.pem \
+        # --key=${K8S_INSTALL_ROOT}/work/flanneld-key.pem \
+        # put ${FLANNEL_ETCD_PREFIX}/config '{"Network":"'${CLUSTER_CIDR}'", "SubnetLen": 21, "Backend": {"Type": "vxlan"}}'
+
+        # # get value which is set above.
+        # ETCDCTL_API=3 ${K8S_INSTALL_ROOT}/bin/etcdctl \
+        # --endpoints=${ETCD_ENDPOINTS} \
+        # --cacert=${K8S_INSTALL_ROOT}/work/ca.pem \
+        # --cert=${K8S_INSTALL_ROOT}/work/flanneld.pem \
+        # --key=${K8S_INSTALL_ROOT}/work/flanneld-key.pem \
+        # get ${FLANNEL_ETCD_PREFIX}/config 
     fi
 
     if [ ! $DRY_RUN = true ]; then
         for ip in ${!iphostmap[@]}    # need to verify whether it is needed every nodes 
         do
             echo ">>> ${ip} /etc/flanneld/cert"
-            ssh root@${ip} "mkdir -p /etc/flanneld/cert"
             scp ${K8S_INSTALL_ROOT}/work/flanneld*.pem root@${ip}:/etc/flanneld/cert
+            ssh root@${ip} "mkdir -p /etc/flanneld/cert"
         done
     fi
 }
@@ -129,7 +148,7 @@ ExecStart=${K8S_INSTALL_ROOT}/bin/flanneld \\
   -etcd-keyfile=/etc/flanneld/cert/flanneld-key.pem \\
   -etcd-endpoints=${ETCD_ENDPOINTS} \\
   -etcd-prefix=${FLANNEL_ETCD_PREFIX} \\
-  -iface=${IFACE} \\
+  -iface=${EffectiveNI} \\
   -ip-masq
 ExecStartPost=${K8S_INSTALL_ROOT}/bin/mk-docker-opts.sh -k DOCKER_NETWORK_OPTIONS -d /run/flannel/docker
 Restart=always
@@ -145,9 +164,9 @@ EOF
     cp ${K8S_INSTALL_ROOT}/work/flanneld.service ${K8S_INSTALL_ROOT}/work/etc/systemd/system/
 
     if [ ! $DRY_RUN = true ]; then
-        for ip in ${!iphostmap[@]}    # need to verify whether it is needed every nodes 
+        for node_ip in ${!iphostmap[@]}    # need to verify whether it is needed every nodes 
         do
-            echo ">>> ${ip} launch flanneld.service"
+            echo ">>> ${node_ip} launch flanneld.service"
             scp ${K8S_INSTALL_ROOT}/work/flanneld.service root@${node_ip}:/etc/systemd/system/
             ssh root@${node_ip} "systemctl daemon-reload && systemctl enable flanneld && systemctl restart flanneld"
         done
