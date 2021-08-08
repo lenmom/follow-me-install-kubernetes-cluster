@@ -118,11 +118,11 @@ EOF
     fi
 
     if [ ! $DRY_RUN = true ]; then
-        for ip in ${!iphostmap[@]}    # need to verify whether it is needed every nodes 
+        for host_ip in ${!iphostmap[@]}    # need to verify whether it is needed every nodes 
         do
-            echo ">>> ${ip} /etc/flanneld/cert"
-            scp ${K8S_INSTALL_ROOT}/work/flanneld*.pem root@${ip}:/etc/flanneld/cert
-            ssh root@${ip} "mkdir -p /etc/flanneld/cert"
+            echo ">>> ${host_ip} /etc/flanneld/cert"
+            ssh root@${host_ip} "mkdir -p /etc/flanneld/cert"
+            scp ${K8S_INSTALL_ROOT}/work/flanneld*.pem root@${host_ip}:/etc/flanneld/cert
         done
     fi
 }
