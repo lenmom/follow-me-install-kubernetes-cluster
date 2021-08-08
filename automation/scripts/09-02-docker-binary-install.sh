@@ -92,28 +92,36 @@ EOF
 ##"insecure-registries": ["docker02:35000"],
 configrate_docker_daemon() 
 {
-# cat > docker-daemon.json <<EOF
-# {
-#     "exec-opts": ["native.cgroupdriver=systemd"],   
-#     "log-driver": "json-file", 
-#     "storage-driver": "overlay2",
-#     "storage-opts": ["overlay2.override_kernel_check=true"]
-#     "registry-mirrors": ["https://docker.mirrors.ustc.edu.cn","https://5f2jam6c.mirror.aliyuncs.com","https://hub-mirror.c.163.com"],
-#     "max-concurrent-downloads": 20,
-#     "live-restore": true,
-#     "max-concurrent-uploads": 10,
-#     "debug": true,
-#     "data-root": "${DOCKER_DIR}/data",
-#     "exec-root": "${DOCKER_DIR}/exec",
-#     "log-opts": {
-#       "max-size": "100m",
-#       "max-file": "5"
-#     }
-# }
-# EOF 
+cat > ${K8S_INSTALL_ROOT}/work/docker-daemon.json <<EOF
+{
+    "exec-opts": [
+      "native.cgroupdriver=systemd"
+    ],
+    "log-driver": "json-file",
+    "storage-driver": "overlay2",
+    "storage-opts": [
+      "overlay2.override_kernel_check=true"
+    ],
+    "registry-mirrors": [
+      "https://docker.mirrors.ustc.edu.cn",
+      "https://5f2jam6c.mirror.aliyuncs.com",
+      "https://hub-mirror.c.163.com"
+    ],
+    "max-concurrent-downloads": 20,
+    "live-restore": true,
+    "max-concurrent-uploads": 10,
+    "debug": true,
+    "data-root": "${DOCKER_DIR}/data",
+    "exec-root": "${DOCKER_DIR}/exec",
+    "log-opts": {
+      "max-size": "100m",
+      "max-file": "5"
+    }
+}
+EOF
 
-  cp ${COMPONENTS_DIR}/docker-daemon.json  .
-  sed -i -e "s|##DOCKER_DIR##|${DOCKER_DIR}|" ${K8S_INSTALL_ROOT}/work/docker-daemon.json
+#   cp ${COMPONENTS_DIR}/docker-daemon.json  .
+#   sed -i -e "s|##DOCKER_DIR##|${DOCKER_DIR}|" ${K8S_INSTALL_ROOT}/work/docker-daemon.json
 }
 
 ##############################################################################################
