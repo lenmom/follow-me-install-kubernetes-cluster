@@ -144,10 +144,10 @@ install_docker()
             ssh root@${worker_ip} "chmod +x ${K8S_INSTALL_ROOT}/bin/*"
 
             echo ">>> ${worker_ip} distribute docker-${DOCKER_VERSION} docker.service"
-            scp docker.service root@${worker_ip}:/etc/systemd/system/
-            ssh root@${worker_ip} "sed -i -e 's|/sbin/iptables -P FORWARD ACCEPT| |' /etc/rc.local"
-            ssh root@${worker_ip} "cat  /sbin/iptables -P FORWARD ACCEPT >> /etc/rc.local"
-            ssh root@${worker_ip} "iptables -P FORWARD ACCEPT"
+            scp ${K8S_INSTALL_ROOT}/work/docker.service  root@${worker_ip}:/etc/systemd/system/
+            ssh root@${worker_ip}  "sed -i '/iptables -P FORWARD ACCEPT/d' /etc/rc.local"
+            ssh root@${worker_ip}  "echo  '/sbin/iptables -P FORWARD ACCEPT' >> /etc/rc.local"
+            ssh root@${worker_ip}  "iptables -P FORWARD ACCEPT"
 
             echo ">>> ${worker_ip} distribute docker-${DOCKER_VERSION} /etc/docker/daemon.json"
             ssh root@${worker_ip} "mkdir -p  /etc/docker/ ${DOCKER_DIR}/{data,exec}"
