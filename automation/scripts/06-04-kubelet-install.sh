@@ -3,10 +3,32 @@
 # kubelet is mainly for worker nodes, but we can run kubelet on master hosts
 basepath=$(cd `dirname $0`; pwd)
 COMPONENTS_DIR=${basepath}/../components
+
+if [ ! -f "${basepath}/../USERDATA" ]; then
+    echo error, missing file:  ${basepath}/../USERDATA
+    exit 1
+fi
 source ${basepath}/../USERDATA
+
+
+if [ ! -f "${K8S_INSTALL_ROOT}/work/iphostinfo" ]; then
+    echo error, missing file:  ${K8S_INSTALL_ROOT}/work/iphostinfo
+    exit 1
+fi
+
+if [ ! -f "${K8S_INSTALL_ROOT}/bin/environment.sh" ]; then
+    echo error, missing file:  ${K8S_INSTALL_ROOT}/bin/environment.sh
+    exit 1
+fi
+
 
 source ${K8S_INSTALL_ROOT}/work/iphostinfo
 source ${K8S_INSTALL_ROOT}/bin/environment.sh
+
+##############################################################################################
+##############################################################################################
+##############################################################################################
+
 
 cd ${K8S_INSTALL_ROOT}/work
 if [ $MASTER_WORKER_SEPERATED = true ] &&  [ "$SHOW_MASTER" = "true" ]; then
@@ -134,7 +156,8 @@ kubeletCgroups: ""
 systemCgroups: ""
 cgroupRoot: ""
 cgroupsPerQOS: true
-cgroupDriver: cgroupfs
+# cgroupDriver: cgroupfs
+cgroupDriver: systemd
 runtimeRequestTimeout: 10m
 hairpinMode: promiscuous-bridge
 maxPods: 220
@@ -184,18 +207,20 @@ cat > kubelet.service.template <<EOF
 [Unit]
 Description=Kubernetes Kubelet
 Documentation=https://github.com/GoogleCloudPlatform/kubernetes
-After=containerd.service
-Requires=containerd.service
+After=docker.service
+Requires=docker.service
+# After=containerd.service
+# Requires=containerd.service
+# --network-plugin=cni \\
+# --cni-conf-dir=/etc/cni/net.d \\
+# --container-runtime=remote \\
+# --container-runtime-endpoint=unix:///var/run/containerd/containerd.sock \\
 
 [Service]
 WorkingDirectory=${K8S_DIR}/kubelet
 ExecStart=${K8S_INSTALL_ROOT}/bin/kubelet \\
   --bootstrap-kubeconfig=/etc/kubernetes/kubelet-bootstrap.kubeconfig \\
   --cert-dir=/etc/kubernetes/cert \\
-  --network-plugin=cni \\
-  --cni-conf-dir=/etc/cni/net.d \\
-  --container-runtime=remote \\
-  --container-runtime-endpoint=unix:///var/run/containerd/containerd.sock \\
   --root-dir=${K8S_DIR}/kubelet \\
   --kubeconfig=/etc/kubernetes/kubelet.kubeconfig \\
   --config=/etc/kubernetes/kubelet-config.yaml \\

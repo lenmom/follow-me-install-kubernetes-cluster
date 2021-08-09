@@ -94,3 +94,5 @@ deploy_k8s_dockerd
 # ./08-04-kube-prometheus-install.sh 2>&1 | tee /tmp/08-04-kube-prometheus-install.log &
 
 # ./08-05-EFK.sh 2>&1 | tee /tmp/08-05-EFK.log &
+
+# netstat -tulpn |grep kube
